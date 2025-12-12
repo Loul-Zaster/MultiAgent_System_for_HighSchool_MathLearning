@@ -20,15 +20,15 @@ class EmbeddingService:
         """Load the embedding model."""
         try:
             self.model = SentenceTransformer(self.model_name)
-            print(f"✅ Loaded embedding model: {self.model_name}")
+            print(f"Loaded embedding model: {self.model_name}")
         except Exception as e:
-            print(f"⚠️ Failed to load embedding model {self.model_name}: {e}")
+            print(f"Failed to load embedding model {self.model_name}: {e}")
             # Fallback to a simpler model
             try:
                 self.model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
-                print("✅ Loaded fallback embedding model")
+                print("Loaded fallback embedding model")
             except Exception as e2:
-                print(f"❌ Failed to load fallback model: {e2}")
+                print(f"Failed to load fallback model: {e2}")
                 self.model = None
     
     def embed_text(self, text: str) -> List[float]:
@@ -40,7 +40,7 @@ class EmbeddingService:
             embedding = self.model.encode(text, convert_to_numpy=True)
             return embedding.tolist()
         except Exception as e:
-            print(f"⚠️ Error generating embedding: {e}")
+            print(f"Error generating embedding: {e}")
             return np.random.rand(Config.EMBEDDING_DIMENSION).tolist()
     
     def encode(self, texts: Union[str, List[str]]) -> Union[np.ndarray, List[np.ndarray]]:
@@ -56,7 +56,7 @@ class EmbeddingService:
             embeddings = self.model.encode(texts, convert_to_numpy=True)
             return embeddings
         except Exception as e:
-            print(f"⚠️ Error generating embeddings: {e}")
+            print(f"Error generating embeddings: {e}")
             # Return random embeddings as fallback
             if isinstance(texts, str):
                 return np.random.rand(Config.EMBEDDING_DIMENSION).astype(np.float32)
@@ -77,5 +77,5 @@ class EmbeddingService:
             similarity = np.dot(embedding1, embedding2) / (norm1 * norm2)
             return float(similarity)
         except Exception as e:
-            print(f"⚠️ Error calculating similarity: {e}")
+            print(f"Error calculating similarity: {e}")
             return 0.0

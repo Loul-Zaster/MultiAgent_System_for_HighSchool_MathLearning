@@ -118,20 +118,58 @@ async def solve_problem(state: MathAgentState) -> MathAgentState:
         # Fallback if GROQ not configured
         ctx = f"\n\nNguồn tham khảo (nếu có):\n{state.compiled_context}" if state.compiled_context else ""
         state.solution_text = "(GROQ chưa cấu hình)\n" + state.problem_text + ctx
-        print("🧠 Solution (fallback) ready")
+        print("Solution (fallback) ready")
         return state
 
     system_prompt = (
-        "Bạn là trợ lý giải toán chi tiết và chính xác.\n"
-        "- Diễn giải từng bước ngắn gọn, kèm ký hiệu LaTeX khi cần.\n"
-        "- Nếu có nguồn/công thức từ web research, trích dẫn [n].\n"
-        "- Nêu giả thiết, kết luận rõ ràng."
+        "Bạn là trợ lý giải toán chi tiết và chính xác. BẮT BUỘC sử dụng LaTeX thực sự cho mọi công thức toán học.\n\n"
+        "=== QUY TẮC BẮT BUỘC ===\n"
+        "1. Mọi công thức toán học PHẢI được viết bằng LaTeX với delimiters $ (inline) hoặc $$ (display).\n"
+        "2. TUYỆT ĐỐI KHÔNG sử dụng bất kỳ placeholder nào như LATEXINLINE, LATEXDISPLAY, hoặc bất kỳ biến thể nào.\n"
+        "3. Nếu bạn viết bất kỳ placeholder nào, đó là LỖI NGHIÊM TRỌNG và câu trả lời sẽ bị từ chối.\n\n"
+        "=== VÍ DỤ CÁCH VIẾT ĐÚNG (LÀM THEO ĐÚNG FORMAT NÀY) ===\n"
+        "Ví dụ 1 - Tính toán đơn giản:\n"
+        "Tổng khối lượng là $1 \\times 5 + 2 \\times 2 + 3 \\times 3 = 5 + 4 + 9 = 18$ kg.\n\n"
+        "Ví dụ 2 - Công thức phức tạp:\n"
+        "Khối lượng trung bình được tính bằng:\n"
+        "$$\\bar{x} = \\frac{1 \\times 5 + 2 \\times 2 + 3 \\times 3}{10} = \\frac{18}{10} = 1.8$$\n\n"
+        "Ví dụ 3 - Xác suất:\n"
+        "Xác suất chọn quả có khối lượng 1 là $P(X = 1) = \\frac{5}{10} = 0.5$.\n\n"
+        "Ví dụ 4 - Kỳ vọng:\n"
+        "Kỳ vọng của biến ngẫu nhiên X là:\n"
+        "$$E(X) = \\sum_{i=1}^{3} x_i \\cdot P(X = x_i) = 1 \\times 0.5 + 2 \\times 0.2 + 3 \\times 0.3 = 1.8$$\n\n"
+        "=== VÍ DỤ SAI (TUYỆT ĐỐI KHÔNG LÀM NHƯ VẬY) ===\n"
+        "SAI: Tổng khối lượng là LATEXINLINE4\n"
+        "SAI: Xác suất LATEXDISPLAY\n"
+        "SAI: Khối lượng trung bình: LATEXINLINE\n"
+        "SAI: Kỳ vọng LATEXDISPLAY0\n\n"
+        "=== KHI NÀO DÙNG $ VÀ KHI NÀO DÙNG $$ ===\n"
+        "- Dùng $...$ cho công thức inline trong câu: Giá trị $x = 5$ hoặc $P(X = 1) = 0.5$.\n"
+        "- Dùng $$...$$ cho công thức display riêng dòng:\n"
+        "  $$E(X) = \\sum_{i=1}^{n} x_i \\cdot P(X = x_i)$$\n\n"
+        "=== NHẮC LẠI ===\n"
+        "KHÔNG BAO GIỜ viết LATEXINLINE, LATEXDISPLAY, hoặc bất kỳ placeholder nào. "
+        "LUÔN viết LaTeX thực sự với $ hoặc $$.\n\n"
+        "Nếu có nguồn/công thức từ web research, trích dẫn [n]. Nêu giả thiết, kết luận rõ ràng."
     )
     user_prompt = (
         f"Bài toán:\n{state.problem_text}\n\n"
         f"Web findings (indexed):\n{state.compiled_context}\n\n"
-        "Lời giải chi tiết:"
+        "Lời giải chi tiết:\n\n"
+        "LƯU Ý QUAN TRỌNG: Viết MỌI công thức toán học bằng LaTeX với delimiters $ hoặc $$. "
+        "KHÔNG BAO GIỜ sử dụng LATEXINLINE, LATEXDISPLAY, hoặc bất kỳ placeholder nào khác. "
+        "Ví dụ: Nếu tính tổng khối lượng, viết $1 \\times 5 + 2 \\times 2 + 3 \\times 3 = 18$ "
+        "chứ KHÔNG viết LATEXINLINE4."
     )
+
+    # Debug: Log the actual prompts being sent
+    print("=" * 80)
+    print("DEBUG: System prompt (first 500 chars):")
+    print(system_prompt[:500])
+    print("=" * 80)
+    print("DEBUG: User prompt (first 500 chars):")
+    print(user_prompt[:500])
+    print("=" * 80)
 
     parts: List[str] = []
     try:
@@ -141,8 +179,8 @@ async def solve_problem(state: MathAgentState) -> MathAgentState:
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
-            temperature=0.2,
-            max_completion_tokens=2048,
+            temperature=0.0,  # Use 0 for more deterministic output
+            max_completion_tokens=3000,  # Increase for longer solutions
             top_p=1,
             reasoning_effort="medium",
             stream=True,
@@ -153,7 +191,58 @@ async def solve_problem(state: MathAgentState) -> MathAgentState:
             if delta and getattr(delta, "content", None):
                 parts.append(delta.content)
         state.solution_text = "".join(parts)
-        print("🧠 Solution generated")
+        
+        # Debug: Log the raw response
+        print("=" * 80)
+        print("DEBUG: Raw LLM response (first 1000 chars):")
+        print(state.solution_text[:1000])
+        print("=" * 80)
+        
+        # Post-processing: Check for placeholders and try to fix
+        if 'LATEXINLINE' in state.solution_text.upper() or 'LATEXDISPLAY' in state.solution_text.upper():
+            print("WARNING: LLM returned placeholders instead of LaTeX!")
+            print(f"   Found in solution (first 500 chars): {state.solution_text[:500]}")
+            
+            # Try to fix by asking LLM to replace placeholders with actual LaTeX
+            # Use a more aggressive fix prompt with examples
+            fix_prompt = (
+                f"LỜI GIẢI SAU CÓ LỖI: chứa các placeholder LATEXINLINE/LATEXDISPLAY thay vì LaTeX thực sự.\n\n"
+                f"Lời giải có lỗi:\n{state.solution_text}\n\n"
+                f"NHIỆM VỤ: Viết lại TOÀN BỘ lời giải, thay thế MỌI placeholder bằng LaTeX thực sự.\n\n"
+                f"QUY TẮC:\n"
+                f"- LATEXINLINE hoặc LATEXINLINE4 trong 'Tổng khối lượng LATEXINLINE4' → $1 \\times 5 + 2 \\times 2 + 3 \\times 3 = 18$\n"
+                f"- LATEXDISPLAY hoặc LATEXDISPLAY0 trong 'Khối lượng trung bình LATEXDISPLAY0' → $$\\bar{x} = \\frac{18}{10} = 1.8$$\n"
+                f"- LATEXINLINE trong 'Xác suất LATEXINLINE' → $P(X = 1) = \\frac{5}{10} = 0.5$\n"
+                f"- LATEXDISPLAY trong 'Kỳ vọng LATEXDISPLAY' → $$E(X) = \\sum_{i} x_i \\cdot P(X = x_i)$$\n\n"
+                f"Hãy phân tích ngữ cảnh xung quanh mỗi placeholder để suy ra công thức LaTeX đúng, rồi thay thế.\n"
+                f"Viết lại TOÀN BỘ lời giải, KHÔNG để lại bất kỳ placeholder nào."
+            )
+            
+            try:
+                fix_completion = groq_client.chat.completions.create(
+                    model="openai/gpt-oss-20b",
+                    messages=[
+                        {"role": "system", "content": (
+                            "Bạn là chuyên gia sửa lỗi LaTeX. Nhiệm vụ của bạn là thay thế MỌI placeholder "
+                            "LATEXINLINE/LATEXDISPLAY bằng LaTeX thực sự với delimiters $ hoặc $$. "
+                            "Phân tích ngữ cảnh để suy ra công thức đúng. KHÔNG được để lại bất kỳ placeholder nào."
+                        )},
+                        {"role": "user", "content": fix_prompt},
+                    ],
+                    temperature=0.0,  # Use 0 for deterministic fixing
+                    max_completion_tokens=3000,  # Allow longer fixes
+                )
+                fixed_text = fix_completion.choices[0].message.content
+                if fixed_text and ('LATEXINLINE' not in fixed_text.upper() and 'LATEXDISPLAY' not in fixed_text.upper()):
+                    state.solution_text = fixed_text
+                    print("Fixed placeholders with actual LaTeX")
+                else:
+                    print("Fix attempt still contains placeholders")
+                    print(f"   Fixed text preview: {fixed_text[:300] if fixed_text else 'None'}")
+            except Exception as e:
+                print(f"Could not fix placeholders: {e}")
+        
+        print("Solution generated")
     except Exception as e:
         state.solution_text = f"(GROQ error) {e}"
     return state
@@ -161,7 +250,7 @@ async def solve_problem(state: MathAgentState) -> MathAgentState:
 
 async def write_solution(state: MathAgentState, output_file: Optional[str] = None) -> MathAgentState:
     if not state.solution_text or not state.solution_text.strip():
-        print("⚠️ Không có lời giải để ghi")
+        print("Không có lời giải để ghi")
         return state
     
     header = "### Lời giải:\n"
@@ -169,7 +258,7 @@ async def write_solution(state: MathAgentState, output_file: Optional[str] = Non
     if output_file:
         with open(output_file, "w", encoding="utf-8") as f:
             f.write(content)
-        print(f"💾 Solution written to {output_file}")
+        print(f"Solution written to {output_file}")
     else:
         print("\n===== LỜI GIẢI =====\n")
         print(content)

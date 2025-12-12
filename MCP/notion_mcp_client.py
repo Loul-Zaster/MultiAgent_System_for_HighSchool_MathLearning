@@ -31,10 +31,19 @@ logger = logging.getLogger("notion-mcp-client")
 
 
 def extract_uuid(resource_uri: str) -> str:
-    match = re.search(r"([0-9a-f]{32})", resource_uri)
+    """Extract UUID from resource URI - handles both formats"""
+    # Try to find UUID with dashes first (standard format)
+    uuid_with_dashes = re.search(r"([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})", resource_uri, re.IGNORECASE)
+    if uuid_with_dashes:
+        return uuid_with_dashes.group(1)
+    
+    # Try to find 32 hex chars (without dashes)
+    match = re.search(r"([0-9a-f]{32})", resource_uri, re.IGNORECASE)
     if match:
         s = match.group(1)
         return f"{s[0:8]}-{s[8:12]}-{s[12:16]}-{s[16:20]}-{s[20:]}"
+    
+    # If no match, return as-is (might already be a valid UUID)
     return resource_uri
 
 
@@ -192,13 +201,23 @@ class NotionMCPClient:
             logger.error(f"Error listing tools: {e}")
             raise
     
-    async def call_tool(self, name: str, arguments: Dict[str, Any]) -> str:
+    async def call_tool(self, name: str, arguments: Dict[str, Any]) -> Any:
         """Call a tool with the given arguments"""
         arguments = {k: v for k, v in arguments.items() if v is not None}
         logger.debug(f"Final arguments sent to tool {name}: {arguments}")
             
         result = await self.session.call_tool(name, arguments)
-        return result.content[0].text if result.content else ""
+        # Return the full result object, not just text
+        if result.content:
+            text_result = result.content[0].text if result.content else ""
+            # Try to parse as JSON if it looks like JSON
+            try:
+                if text_result.strip().startswith('{'):
+                    return json.loads(text_result)
+            except:
+                pass
+            return text_result
+        return ""
     
     async def search_notion(self, query: Optional[str] = None, filter_type: Optional[str] = None) -> str:
         arguments: Dict[str, Any] = {}
@@ -218,15 +237,130 @@ class NotionMCPClient:
         content: Optional[str] = None
     ) -> str:
         """Create a new page in Notion"""
+        # First create the page
         arguments = {
             "title": title,
             "parent_id": parent_id
         }
         if properties:
             arguments["properties"] = properties
+        
+        result = await self.call_tool("create_page", arguments)
+        
+        # If there's content, add it using the same method as update_page
         if content:
-            arguments["content"] = content
-        return await self.call_tool("create_page", arguments)
+            # Extract page ID from result
+            try:
+                page_id = None
+                if isinstance(result, dict):
+                    page_id = result.get("id")
+                elif isinstance(result, str):
+                    # Try to parse as JSON
+                    try:
+                        page_data = json.loads(result)
+                        if isinstance(page_data, dict):
+                            page_id = page_data.get("id")
+                    except:
+                        # Try regex extraction
+                        match = re.search(r'"id"\s*:\s*"([^"]+)"', result)
+                        if match:
+                            page_id = match.group(1)
+                
+                if page_id:
+                    converter = MarkdownConverter()
+                    blocks = converter.markdown_latex_to_notion_blocks(content)
+                    
+                    # Validate and clean blocks before sending (same as update_page)
+                    valid_blocks = []
+                    for i, block in enumerate(blocks):
+                        try:
+                            # Ensure block has required structure
+                            if not isinstance(block, dict):
+                                logger.warning(f"Block {i} is not a dict, skipping")
+                                continue
+                            
+                            # Ensure "object": "block" is present
+                            if "object" not in block:
+                                block["object"] = "block"
+                            
+                            # Validate block type
+                            block_type = block.get("type")
+                            if not block_type:
+                                logger.warning(f"Block {i} has no type, skipping")
+                                continue
+                            
+                            # Validate equation blocks
+                            if block_type == "equation":
+                                expr = block.get("equation", {}).get("expression", "")
+                                if not expr or not expr.strip():
+                                    logger.warning(f"Block {i} has empty equation expression, skipping")
+                                    continue
+                                # Ensure expression is not too long (Notion limit is ~2000 chars)
+                                if len(expr) > 2000:
+                                    logger.warning(f"Block {i} equation too long ({len(expr)} chars), truncating")
+                                    block["equation"]["expression"] = expr[:2000]
+                            
+                            # Validate paragraph blocks
+                            elif block_type == "paragraph":
+                                rich_text = block.get("paragraph", {}).get("rich_text", [])
+                                if not rich_text:
+                                    logger.warning(f"Block {i} paragraph has no rich_text, skipping")
+                                    continue
+                                
+                                # Validate each rich_text item and split if too long
+                                valid_rich_text = []
+                                for rt in rich_text:
+                                    if rt.get("type") == "text":
+                                        text_content = rt.get("text", {}).get("content", "")
+                                        if text_content:  # Only add non-empty text
+                                            # Split if content > 2000 chars (Notion limit)
+                                            if len(text_content) > 2000:
+                                                logger.warning(f"Text content too long ({len(text_content)} chars), splitting")
+                                                # Split into chunks of 2000 chars
+                                                for i in range(0, len(text_content), 2000):
+                                                    chunk = text_content[i:i+2000]
+                                                    chunk_rt = rt.copy()
+                                                    chunk_rt["text"] = {"content": chunk}
+                                                    valid_rich_text.append(chunk_rt)
+                                            else:
+                                                valid_rich_text.append(rt)
+                                    elif rt.get("type") == "equation":
+                                        expr = rt.get("equation", {}).get("expression", "")
+                                        if expr and expr.strip():  # Only add non-empty equations
+                                            valid_rich_text.append(rt)
+                                
+                                if not valid_rich_text:
+                                    logger.warning(f"Block {i} paragraph has no valid rich_text, skipping")
+                                    continue
+                                
+                                block["paragraph"]["rich_text"] = valid_rich_text
+                            
+                            valid_blocks.append(block)
+                        except Exception as e:
+                            logger.warning(f"Error validating block {i}: {e}, skipping")
+                            continue
+                    
+                    if not valid_blocks:
+                        logger.warning("No valid blocks to add to new page")
+                        return f"Page created (no valid content blocks)."
+                    
+                    # Append validated blocks
+                    append_resp = await self.client.patch(
+                        f"https://api.notion.com/v1/blocks/{page_id}/children",
+                        json={"children": valid_blocks}
+                    )
+                    append_resp.raise_for_status()
+                    return f"Page created with {len(valid_blocks)} blocks."
+                else:
+                    logger.warning(f"Could not extract page ID from result: {result}")
+            except Exception as e:
+                logger.warning(f"Could not add content to new page: {e}")
+                import traceback
+                traceback.print_exc()
+                # Return the page creation result anyway
+                return result
+        
+        return result
     
     async def update_page(
         self, 
@@ -248,6 +382,80 @@ class NotionMCPClient:
         if content:
             converter = MarkdownConverter()
             blocks = converter.markdown_latex_to_notion_blocks(content)
+            
+            # Validate and clean blocks before sending
+            valid_blocks = []
+            for i, block in enumerate(blocks):
+                try:
+                    # Ensure block has required structure
+                    if not isinstance(block, dict):
+                        logger.warning(f"Block {i} is not a dict, skipping")
+                        continue
+                    
+                    # Ensure "object": "block" is present
+                    if "object" not in block:
+                        block["object"] = "block"
+                    
+                    # Validate block type
+                    block_type = block.get("type")
+                    if not block_type:
+                        logger.warning(f"Block {i} has no type, skipping")
+                        continue
+                    
+                    # Validate equation blocks
+                    if block_type == "equation":
+                        expr = block.get("equation", {}).get("expression", "")
+                        if not expr or not expr.strip():
+                            logger.warning(f"Block {i} has empty equation expression, skipping")
+                            continue
+                        # Ensure expression is not too long (Notion limit is ~2000 chars)
+                        if len(expr) > 2000:
+                            logger.warning(f"Block {i} equation too long ({len(expr)} chars), truncating")
+                            block["equation"]["expression"] = expr[:2000]
+                    
+                    # Validate paragraph blocks
+                    elif block_type == "paragraph":
+                        rich_text = block.get("paragraph", {}).get("rich_text", [])
+                        if not rich_text:
+                            logger.warning(f"Block {i} paragraph has no rich_text, skipping")
+                            continue
+                        
+                        # Validate each rich_text item and split if too long
+                        valid_rich_text = []
+                        for rt in rich_text:
+                            if rt.get("type") == "text":
+                                text_content = rt.get("text", {}).get("content", "")
+                                if text_content:  # Only add non-empty text
+                                    # Split if content > 2000 chars (Notion limit)
+                                    if len(text_content) > 2000:
+                                        logger.warning(f"Text content too long ({len(text_content)} chars), splitting")
+                                        # Split into chunks of 2000 chars
+                                        for i in range(0, len(text_content), 2000):
+                                            chunk = text_content[i:i+2000]
+                                            chunk_rt = rt.copy()
+                                            chunk_rt["text"] = {"content": chunk}
+                                            valid_rich_text.append(chunk_rt)
+                                    else:
+                                        valid_rich_text.append(rt)
+                            elif rt.get("type") == "equation":
+                                expr = rt.get("equation", {}).get("expression", "")
+                                if expr and expr.strip():  # Only add non-empty equations
+                                    valid_rich_text.append(rt)
+                        
+                        if not valid_rich_text:
+                            logger.warning(f"Block {i} paragraph has no valid rich_text, skipping")
+                            continue
+                        
+                        block["paragraph"]["rich_text"] = valid_rich_text
+                    
+                    valid_blocks.append(block)
+                except Exception as e:
+                    logger.warning(f"Error validating block {i}: {e}, skipping")
+                    continue
+            
+            if not valid_blocks:
+                logger.warning("No valid blocks to add")
+                return f"Page {page_id} updated (no valid content blocks)."
 
             if mode == "edit":
                 existing_blocks_resp = await self.client.get(
@@ -265,21 +473,41 @@ class NotionMCPClient:
                     except Exception as e:
                         logger.warning(f"Couldn't delete block {blk_id}: {e}")
 
-                # 3. Append block 
-                append_resp = await self.client.patch(
-                    f"https://api.notion.com/v1/blocks/{page_id}/children",
-                    json={"children": blocks}
-                )
-                append_resp.raise_for_status()
-                return f"Page {page_id} content replaced ({len(blocks)} blocks)."
+                # 3. Append blocks with error details
+                try:
+                    append_resp = await self.client.patch(
+                        f"https://api.notion.com/v1/blocks/{page_id}/children",
+                        json={"children": valid_blocks}
+                    )
+                    append_resp.raise_for_status()
+                    return f"Page {page_id} content replaced ({len(valid_blocks)} blocks)."
+                except httpx.HTTPStatusError as e:
+                    error_detail = ""
+                    try:
+                        error_detail = e.response.json()
+                    except:
+                        error_detail = e.response.text
+                    logger.error(f"Notion API error: {e.response.status_code} - {error_detail}")
+                    logger.error(f"Blocks being sent: {json.dumps(valid_blocks[:2], indent=2)}")  # Log first 2 blocks
+                    raise Exception(f"Notion API error: {e.response.status_code} - {error_detail}")
             
             elif mode == "add":
-                append_resp = await self.client.patch(
-                    f"https://api.notion.com/v1/blocks/{page_id}/children",
-                    json={"children": blocks}
-                )
-                append_resp.raise_for_status()
-                return f"Page {page_id} appended with {len(blocks)} new blocks."
+                try:
+                    append_resp = await self.client.patch(
+                        f"https://api.notion.com/v1/blocks/{page_id}/children",
+                        json={"children": valid_blocks}
+                    )
+                    append_resp.raise_for_status()
+                    return f"Page {page_id} appended with {len(valid_blocks)} new blocks."
+                except httpx.HTTPStatusError as e:
+                    error_detail = ""
+                    try:
+                        error_detail = e.response.json()
+                    except:
+                        error_detail = e.response.text
+                    logger.error(f"Notion API error: {e.response.status_code} - {error_detail}")
+                    logger.error(f"Blocks being sent: {json.dumps(valid_blocks[:2], indent=2)}")  # Log first 2 blocks
+                    raise Exception(f"Notion API error: {e.response.status_code} - {error_detail}")
 
         return f"Page {page_id} updated (metadata only)." 
     

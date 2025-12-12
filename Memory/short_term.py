@@ -54,7 +54,7 @@ class ShortTermMemory:
         self.conversation_id: Optional[str] = None
         self.created_at = time.time()
         
-        print(f"✅ Initialized ShortTermMemory with max_size: {self.max_size}")
+        print(f"Initialized ShortTermMemory with max_size: {self.max_size}")
     
     def add_message(self, role: str, content: str, 
                    metadata: Optional[Dict[str, Any]] = None) -> Message:
@@ -77,7 +77,7 @@ class ShortTermMemory:
         )
         
         self.messages.append(message)
-        print(f"📝 Added {role} message to short-term memory")
+        print(f"Added {role} message to short-term memory")
         
         return message
     
@@ -172,7 +172,7 @@ class ShortTermMemory:
     def clear(self) -> None:
         """Clear all messages from short-term memory."""
         self.messages.clear()
-        print("🗑️ Cleared short-term memory")
+        print("Cleared short-term memory")
     
     def get_stats(self) -> Dict[str, Any]:
         """

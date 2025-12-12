@@ -6,3 +6,7 @@ beautifulsoup4>=4.12.3
 sentence-transformers>=2.2.2
 numpy>=1.24.0
 
+# Flask dependencies
+flask>=3.0.0
+flask-cors>=4.0.0
+

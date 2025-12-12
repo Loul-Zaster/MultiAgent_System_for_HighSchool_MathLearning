@@ -52,9 +52,9 @@ async def write_to_notion(page_id: str, content: str):
     """Ghi nội dung OCR đã format vào Notion page"""
     notion_client = NotionMCPClient(MCP_SERVER, NOTION_TOKEN)
     async with notion_client.connect():
-        text_block = f"📄 Kết quả OCR:\n\n{content}"
+        text_block = f"Kết quả OCR:\n\n{content}"
         await notion_client.update_page(page_id, content=text_block)
-        print("✅ Đã ghi OCR vào Notion page:", page_id)
+        print("Đã ghi OCR vào Notion page:", page_id)
 
 
 def main():
@@ -75,27 +75,27 @@ def main():
 
     client = VinternClient(args.api_url)
 
-    print("🔎 Đợi OCR API sẵn sàng…")
+    print("Đợi OCR API sẵn sàng…")
     health = wait_until_ready(args.api_url)
     print("Health check:", health)
 
     # Upload ảnh tới OCR server
-    print("📤 Upload ảnh:", args.image)
+    print("Upload ảnh:", args.image)
     resp = client.upload_image(args.image)
     print("Raw resp:", resp)
 
     if resp.get("status") != "ok":
-        print("❌ Lỗi OCR:", resp.get("msg", resp))
+        print("Lỗi OCR:", resp.get("msg", resp))
         return
 
     # Lấy text từ blocks → format Markdown gọn
     ocr_text = format_blocks(resp)
 
     if not ocr_text.strip():
-        print("⚠️ OCR server không trả về text có thể dùng!")
+        print("OCR server không trả về text có thể dùng!")
         return
 
-    print("\n📖 Kết quả OCR (sau format):\n", ocr_text)
+    print("\nKết quả OCR (sau format):\n", ocr_text)
 
     # Ghi ra Notion
     asyncio.run(write_to_notion(args.page, ocr_text))

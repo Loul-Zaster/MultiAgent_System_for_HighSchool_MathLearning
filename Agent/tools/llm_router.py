@@ -12,7 +12,7 @@ try:
     project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
     load_dotenv(dotenv_path=os.path.join(project_root, ".env"))
 except Exception as e:
-    print(f"⚠️ Could not load .env: {e}")
+    print(f"Could not load .env: {e}")
     pass
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
@@ -21,7 +21,7 @@ if GROQ_API_KEY:
     try:
         groq_client = Groq(api_key=GROQ_API_KEY)
     except Exception as e:
-        print(f"⚠️ Failed to initialize Groq client in LLM router: {e}")
+        print(f"Failed to initialize Groq client in LLM router: {e}")
         groq_client = None
 else:
     groq_client = None
@@ -207,7 +207,7 @@ Hãy phân tích kỹ và chọn chính xác nhất có thể."""
             # Fix escape characters
             response = response.replace("\\(", "(").replace("\\)", ")")
             
-            print(f"🔍 LLM Response: {response}")  # Debug
+            print(f"LLM Response: {response}")  # Debug
             
             result = json.loads(response)
             
@@ -224,7 +224,7 @@ Hãy phân tích kỹ và chọn chính xác nhất có thể."""
             return result
             
         except Exception as e:
-            print(f"⚠️ LLM routing error: {e}")
+            print(f"LLM routing error: {e}")
             return {
                 "agent": "general",
                 "confidence": 0.3,
@@ -280,17 +280,17 @@ async def test_llm_router():
     
     router = LLMRouter()
     
-    print("🧪 Testing LLM Router...")
+    print("Testing LLM Router...")
     print("=" * 60)
     
     for prompt in test_prompts:
         decision = await router.route(prompt)
-        print(f"📝 Prompt: {prompt}")
-        print(f"🎯 Agent: {decision.agent_type}")
-        print(f"📊 Confidence: {decision.confidence:.2f}")
-        print(f"💭 Reasoning: {decision.reasoning}")
+        print(f"Prompt: {prompt}")
+        print(f"Agent: {decision.agent_type}")
+        print(f"Confidence: {decision.confidence:.2f}")
+        print(f"Reasoning: {decision.reasoning}")
         if decision.alternative_agents:
-            print(f"🔄 Alternatives: {[alt['agent'] for alt in decision.alternative_agents]}")
+            print(f"Alternatives: {[alt['agent'] for alt in decision.alternative_agents]}")
         print("-" * 40)
 
 if __name__ == "__main__":

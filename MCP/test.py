@@ -151,7 +151,7 @@ class NotionMCPExample:
     async def run_all_examples(self):
         """Run all example operations"""
         async with self.client.connect():
-            print("🚀 Notion MCP Server Examples\n")
+            print("Notion MCP Server Examples\n")
             
             # Example 1: List all resources
             await self.example_list_resources()
@@ -171,11 +171,11 @@ class NotionMCPExample:
             # Example 6: Create a new page (commented out to avoid spam)
             # await self.example_create_page()
             
-            print("\n✅ All examples completed!")
+            print("\nAll examples completed!")
     
     async def example_list_resources(self):
         """Example: List all available resources"""
-        print("📋 Example 1: Listing all resources")
+        print("Example 1: Listing all resources")
         try:
             resources = await self.client.list_resources()
             print(f"Found {len(resources)} resources:")
@@ -189,11 +189,11 @@ class NotionMCPExample:
                 print(f"  ... and {len(resources) - 5} more\n")
             
         except Exception as e:
-            print(f"❌ Error: {e}\n")
+            print(f"Error: {e}\n")
     
     async def example_list_tools(self):
         """Example: List all available tools"""
-        print("🔧 Example 2: Listing all available tools")
+        print("Example 2: Listing all available tools")
         try:
             tools = await self.client.list_tools()
             print(f"Found {len(tools)} tools:")
@@ -202,11 +202,11 @@ class NotionMCPExample:
             print()
             
         except Exception as e:
-            print(f"❌ Error: {e}\n")
+            print(f"Error: {e}\n")
     
     async def example_search(self):
         """Example: Search for content in Notion"""
-        print("🔍 Example 3: Searching for content")
+        print("Example 3: Searching for content")
         try:
             # Search for pages containing "meeting"
             result = await self.client.search_notion("meeting", filter_type="page")
@@ -233,11 +233,11 @@ class NotionMCPExample:
             print()
             
         except Exception as e:
-            print(f"❌ Error: {e}\n")
+            print(f"Error: {e}\n")
     
     async def example_read_resource(self):
         """Example: Read a specific resource"""
-        print("📖 Example 4: Reading a specific resource")
+        print("Example 4: Reading a specific resource")
         try:
             # First get available resources
             resources = await self.client.list_resources()
@@ -259,11 +259,11 @@ class NotionMCPExample:
                 print("  No resources available")
                 
         except Exception as e:
-            print(f"❌ Error: {e}\n")
+            print(f"Error: {e}\n")
     
     async def example_query_database(self):
         """Example: Query a database"""
-        print("🗃️  Example 5: Querying a database")
+        print("Example 5: Querying a database")
         try:
             # First find a database
             resources = await self.client.list_resources()
@@ -283,11 +283,11 @@ class NotionMCPExample:
                 print("  No database resources found")
                 
         except Exception as e:
-            print(f"❌ Error: {e}\n")
+            print(f"Error: {e}\n")
     
     async def example_create_page(self):
         """Example: Create a new page (commented out by default)"""
-        print("📝 Example 6: Creating a new page")
+        print("Example 6: Creating a new page")
         try:
             # This example is commented out to avoid creating spam pages
             # Uncomment and modify as needed for testing
@@ -330,7 +330,7 @@ This is a test page created via the Notion MCP server.
                 print("  No parent resources available")
                 
         except Exception as e:
-            print(f"❌ Error: {e}\n")
+            print(f"Error: {e}\n")
     
     def _extract_title(self, page_data: dict) -> str:
         """Helper to extract page title from Notion page data"""
@@ -358,7 +358,7 @@ class NotionMCPTester:
     async def run_tests(self):
         """Run all tests"""
         async with self.client.connect():
-            print("🧪 Running Notion MCP Server Tests\n")
+            print("Running Notion MCP Server Tests\n")
             
             await self.test_connection()
             await self.test_list_resources()
@@ -370,40 +370,40 @@ class NotionMCPTester:
             passed = sum(1 for result in self.test_results if result)
             total = len(self.test_results)
             
-            print(f"\n📊 Test Results: {passed}/{total} tests passed")
+            print(f"\nTest Results: {passed}/{total} tests passed")
             if passed == total:
-                print("✅ All tests passed!")
+                print("All tests passed!")
             else:
-                print("❌ Some tests failed")
+                print("Some tests failed")
     
     async def test_connection(self):
         """Test basic connection"""
-        print("🔌 Testing connection...")
+        print("Testing connection...")
         try:
             # Try to list tools as a connection test
             tools = await self.client.list_tools()
             assert len(tools) > 0, "No tools available"
-            print("  ✅ Connection successful")
+            print("  Connection successful")
             self.test_results.append(True)
         except Exception as e:
-            print(f"  ❌ Connection failed: {e}")
+            print(f"  Connection failed: {e}")
             self.test_results.append(False)
     
     async def test_list_resources(self):
         """Test resource listing"""
-        print("📋 Testing resource listing...")
+        print("Testing resource listing...")
         try:
             resources = await self.client.list_resources()
             assert isinstance(resources, list), "Resources should be a list"
-            print(f"  ✅ Found {len(resources)} resources")
+            print(f"  Found {len(resources)} resources")
             self.test_results.append(True)
         except Exception as e:
-            print(f"  ❌ Resource listing failed: {e}")
+            print(f"  Resource listing failed: {e}")
             self.test_results.append(False)
     
     async def test_list_tools(self):
         """Test tool listing"""
-        print("🔧 Testing tool listing...")
+        print("Testing tool listing...")
         try:
             tools = await self.client.list_tools()
             assert isinstance(tools, list), "Tools should be a list"
@@ -415,52 +415,52 @@ class NotionMCPTester:
             for expected in expected_tools:
                 assert expected in tool_names, f"Missing tool: {expected}"
             
-            print(f"  ✅ All {len(tools)} tools available")
+            print(f"  All {len(tools)} tools available")
             self.test_results.append(True)
         except Exception as e:
-            print(f"  ❌ Tool listing failed: {e}")
+            print(f"  Tool listing failed: {e}")
             self.test_results.append(False)
     
     async def test_search_functionality(self):
         """Test search functionality"""
-        print("🔍 Testing search functionality...")
+        print("Testing search functionality...")
         try:
             # Test basic search
             result = await self.client.search_notion("test")
             assert isinstance(result, str), "Search result should be a string"
             assert "Search results" in result, "Should contain search results"
             
-            print("  ✅ Search functionality working")
+            print("  Search functionality working")
             self.test_results.append(True)
         except Exception as e:
-            print(f"  ❌ Search failed: {e}")
+            print(f"  Search failed: {e}")
             self.test_results.append(False)
     
     async def test_error_handling(self):
         """Test error handling"""
-        print("⚠️  Testing error handling...")
+        print("Testing error handling...")
         try:
             # Test with invalid resource URI
             try:
                 await self.client.read_resource("invalid://resource")
                 # If no exception, that's unexpected
-                print("  ⚠️  Expected error for invalid URI but got none")
+                print("  Expected error for invalid URI but got none")
                 self.test_results.append(False)
             except Exception:
                 # Expected behavior
-                print("  ✅ Invalid URI handled correctly")
+                print("  Invalid URI handled correctly")
                 
             # Test with invalid tool call
             try:
                 await self.client.call_tool("nonexistent_tool", {})
-                print("  ⚠️  Expected error for invalid tool but got none")
+                print("  Expected error for invalid tool but got none")
                 self.test_results.append(False)
             except Exception:
-                print("  ✅ Invalid tool handled correctly")
+                print("  Invalid tool handled correctly")
                 
             self.test_results.append(True)
         except Exception as e:
-            print(f"  ❌ Error handling test failed: {e}")
+            print(f"  Error handling test failed: {e}")
             self.test_results.append(False)
 
 

@@ -14,7 +14,7 @@ if GROQ_API_KEY:
     try:
         groq_client = Groq(api_key=GROQ_API_KEY)
     except Exception as e:
-        print(f"⚠️ Failed to initialize Groq client in semantic router: {e}")
+        print(f"Failed to initialize Groq client in semantic router: {e}")
         groq_client = None
 else:
     groq_client = None
@@ -50,7 +50,7 @@ class SemanticRouter:
             # Use a lightweight multilingual model
             self.model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
         except Exception as e:
-            print(f"⚠️ Không thể load embedding model: {e}")
+            print(f"Không thể load embedding model: {e}")
             self.model = None
     
     def _initialize_agent_profiles(self) -> Dict[str, AgentProfile]:

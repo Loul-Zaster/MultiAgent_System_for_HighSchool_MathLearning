@@ -64,7 +64,7 @@ class LongTermMemoryManager:
         self.similarity_threshold = getattr(Config, 'SIMILARITY_THRESHOLD', 0.7)
         self.max_memories = getattr(Config, 'MAX_SEARCH_RESULTS', 10)
         
-        print("✅ Initialized LongTermMemoryManager")
+        print("Initialized LongTermMemoryManager")
     
     async def store_memory(self, content: str, memory_type: str = "knowledge",
                     importance: float = 0.5, tags: Optional[List[str]] = None,
@@ -128,11 +128,11 @@ class LongTermMemoryManager:
                 metadata=metadata
             )
             
-            print(f"✅ Stored long-term memory: {memory_type} - {content[:50]}...")
+            print(f"Stored long-term memory: {memory_type} - {content[:50]}...")
             return memory_id
             
         except Exception as e:
-            print(f"⚠️ Error storing long-term memory: {e}")
+            print(f"Error storing long-term memory: {e}")
             raise
     
     async def retrieve_memories(self, query: str, memory_type: Optional[str] = None,
@@ -195,11 +195,11 @@ class LongTermMemoryManager:
                 if max_results and len(filtered_memories) >= max_results:
                     break
             
-            print(f"🔍 Retrieved {len(filtered_memories)} memories for query: {query[:50]}...")
+            print(f"Retrieved {len(filtered_memories)} memories for query: {query[:50]}...")
             return filtered_memories
             
         except Exception as e:
-            print(f"⚠️ Error retrieving memories: {e}")
+            print(f"Error retrieving memories: {e}")
             return []
     
     def store_conversation_summary(self, summary: str, conversation_context: str,
@@ -304,7 +304,7 @@ class LongTermMemoryManager:
                 }
             return None
         except Exception as e:
-            print(f"⚠️ Error getting memory {memory_id}: {e}")
+            print(f"Error getting memory {memory_id}: {e}")
             return None
     
     def delete_memory(self, memory_id: str) -> bool:
@@ -320,7 +320,7 @@ class LongTermMemoryManager:
         try:
             return self.vector_store.delete_memory(memory_id)
         except Exception as e:
-            print(f"⚠️ Error deleting memory {memory_id}: {e}")
+            print(f"Error deleting memory {memory_id}: {e}")
             return False
     
     def list_all_memories(self, limit: int = 100) -> List[Dict[str, Any]]:
@@ -353,10 +353,10 @@ class LongTermMemoryManager:
                 }
                 memories.append(memory)
             
-            print(f"📋 Listed {len(memories)} memories")
+            print(f"Listed {len(memories)} memories")
             return memories
         except Exception as e:
-            print(f"⚠️ Error listing memories: {e}")
+            print(f"Error listing memories: {e}")
             return []
     
     def clear_all_memories(self) -> bool:
@@ -369,5 +369,5 @@ class LongTermMemoryManager:
         try:
             return self.vector_store.clear_all_memories()
         except Exception as e:
-            print(f"⚠️ Error clearing memories: {e}")
+            print(f"Error clearing memories: {e}")
             return False

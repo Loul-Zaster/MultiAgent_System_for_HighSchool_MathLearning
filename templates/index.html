@@ -1,0 +1,1316 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Agent Math Learning System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/ocr_progress.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/ocr_notifications.css') }}">
+    <!-- KaTeX for LaTeX rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+    <!-- Marked.js for Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Left Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1 class="logo">CDIO 4 - NHÓM 2</h1>
+            </div>
+
+            <button class="new-chat-btn" id="newChatBtn">
+                <span class="icon">
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2Z" />
+                        <path d="M6 6h6M6 9h4" />
+                        <path d="m11 12 2 2 2-2" stroke-linecap="round" />
+                    </svg>
+                </span>
+                <span>Đoạn chat mới</span>
+            </button>
+
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active">
+                    <span class="icon">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor"
+                            stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path
+                                d="M9 2C5.5 2 2.5 4.5 2.5 7.5c0 1.5.8 2.8 2 3.8L4 14l3-1.5c.5.1 1 .2 1.5.2 3.5 0 6.5-2.5 6.5-5.5S12.5 2 9 2Z" />
+                        </svg>
+                    </span>
+                    <span>Đoạn chat</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <span class="icon">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor"
+                            stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 5h12M3 9h12M3 13h8" />
+                        </svg>
+                    </span>
+                    <span>Dự án</span>
+                </a>
+            </nav>
+
+            <div class="chat-history">
+                <h3 class="history-title">Gần đây</h3>
+                <div class="history-list" id="chatHistoryList">
+                    <!-- Chat history items will be populated here -->
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="user-profile" id="userProfileBtn">
+                    <div class="user-avatar">U</div>
+                    <div class="user-info">
+                        <div class="user-name">User</div>
+                        <div class="user-plan">Free plan</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <div class="chat-container" id="chatContainer">
+                <div class="chat-messages" id="chatMessages">
+                    <!-- Messages will be displayed here -->
+                </div>
+            </div>
+
+            <!-- Chat Input Area -->
+            <div class="chat-input-area">
+                <div class="chat-input-wrapper">
+                    <textarea id="chatInput" class="chat-input" placeholder="Tôi có thể giúp gì cho bạn?"
+                        rows="1"></textarea>
+                    <div class="input-footer">
+                        <div class="input-footer-left">
+                            <button class="action-btn" id="attachFileBtn" title="Đính kèm tệp (ảnh, tài liệu, ...)">
+                                <span class="icon">
+                                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor"
+                                        stroke-width="2" stroke-linecap="round">
+                                        <line x1="10" y1="5" x2="10" y2="15" />
+                                        <line x1="5" y1="10" x2="15" y2="10" />
+                                    </svg>
+                                </span>
+                            </button>
+                            <button class="action-btn" id="mcpBtn" title="Công cụ MCP">
+                                <span class="icon">
+                                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor"
+                                        stroke-width="1.5" stroke-linecap="round">
+                                        <!-- First horizontal line -->
+                                        <line x1="3" y1="7" x2="17" y2="7" />
+                                        <circle cx="10" cy="7" r="1.5" fill="currentColor" />
+                                        <!-- Short lines extending from circle on first line -->
+                                        <line x1="8.5" y1="7" x2="4" y2="7" stroke-width="2.5" />
+                                        <line x1="11.5" y1="7" x2="16" y2="7" stroke-width="2.5" />
+                                        <!-- Second horizontal line -->
+                                        <line x1="3" y1="13" x2="17" y2="13" />
+                                        <circle cx="10" cy="13" r="1.5" fill="currentColor" />
+                                        <!-- Short lines extending from circle on second line -->
+                                        <line x1="8.5" y1="13" x2="4" y2="13" stroke-width="2.5" />
+                                        <line x1="11.5" y1="13" x2="16" y2="13" stroke-width="2.5" />
+                                    </svg>
+                                </span>
+                            </button>
+                        </div>
+                        <button class="send-btn" id="sendBtn" title="Gửi tin nhắn">
+                            <span class="icon">↑</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- MCP Tools List Modal -->
+    <div class="mcp-tools-modal" id="mcpToolsModal">
+        <div class="mcp-tools-modal-content">
+            <div class="mcp-tools-modal-header">
+                <h2>Công cụ MCP</h2>
+                <button class="mcp-tools-modal-close" id="mcpToolsModalClose">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round">
+                        <line x1="5" y1="5" x2="15" y2="15" />
+                        <line x1="15" y1="5" x2="5" y2="15" />
+                    </svg>
+                </button>
+            </div>
+            <div class="mcp-tools-modal-body">
+                <div class="mcp-tools-list">
+                    <button class="mcp-tool-item" id="mcpToolNotion">
+                        <div class="mcp-tool-icon">
+                            <div class="mcp-tool-icon-bg">
+                                <span>N</span>
+                            </div>
+                        </div>
+                        <div class="mcp-tool-info">
+                            <div class="mcp-tool-name">Notion</div>
+                            <div class="mcp-tool-status" id="notionToolStatus">Chưa kết nối</div>
+                        </div>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor"
+                            stroke-width="1.5" stroke-linecap="round">
+                            <path d="M6 12L10 8L6 4" />
+                        </svg>
+                    </button>
+
+                    <button class="mcp-tool-item" disabled>
+                        <div class="mcp-tool-icon">
+                            <div class="mcp-tool-icon-bg">
+                                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor"
+                                    stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <path
+                                        d="M10 2C5.58 2 2 5.58 2 10C2 14.42 5.58 18 10 18C14.42 18 18 14.42 18 10C18 5.58 14.42 2 10 2Z" />
+                                    <path d="M10 6V10L13 11" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="mcp-tool-info">
+                            <div class="mcp-tool-name">GitHub</div>
+                            <div class="mcp-tool-status">Sắp ra mắt</div>
+                        </div>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor"
+                            stroke-width="1.5" stroke-linecap="round">
+                            <path d="M6 12L10 8L6 4" />
+                        </svg>
+                    </button>
+
+                    <button class="mcp-tool-item" disabled>
+                        <div class="mcp-tool-icon">
+                            <div class="mcp-tool-icon-bg">
+                                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor"
+                                    stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="4" width="14" height="12" rx="1" />
+                                    <path d="M3 8H17M7 4V2M13 4V2" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="mcp-tool-info">
+                            <div class="mcp-tool-name">Google Drive</div>
+                            <div class="mcp-tool-status">Sắp ra mắt</div>
+                        </div>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor"
+                            stroke-width="1.5" stroke-linecap="round">
+                            <path d="M6 12L10 8L6 4" />
+                        </svg>
+                    </button>
+
+                    <button class="mcp-tool-item" disabled>
+                        <div class="mcp-tool-icon">
+                            <div class="mcp-tool-icon-bg">
+                                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor"
+                                    stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="10" cy="10" r="8" />
+                                    <path d="M10 6V10L13 11" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="mcp-tool-info">
+                            <div class="mcp-tool-name">Lịch</div>
+                            <div class="mcp-tool-status">Sắp ra mắt</div>
+                        </div>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor"
+                            stroke-width="1.5" stroke-linecap="round">
+                            <path d="M6 12L10 8L6 4" />
+                        </svg>
+                    </button>
+
+                    <button class="mcp-tool-item" disabled>
+                        <div class="mcp-tool-icon">
+                            <div class="mcp-tool-icon-bg">
+                                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor"
+                                    stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M10 2L12 7L17 8L13 12L14 17L10 14L6 17L7 12L3 8L8 7L10 2Z" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="mcp-tool-info">
+                            <div class="mcp-tool-name">Slack</div>
+                            <div class="mcp-tool-status">Sắp ra mắt</div>
+                        </div>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor"
+                            stroke-width="1.5" stroke-linecap="round">
+                            <path d="M6 12L10 8L6 4" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MCP Tools Modal -->
+    <div class="mcp-modal" id="mcpModal">
+        <div class="mcp-modal-content">
+            <div class="mcp-modal-header">
+                <h2>Công cụ MCP - Tích hợp Notion</h2>
+                <button class="mcp-modal-close" id="mcpModalClose">&times;</button>
+            </div>
+
+            <div class="mcp-modal-body">
+                <div class="mcp-section">
+                    <div class="mcp-pages-header">
+                        <h3>Trang</h3>
+                        <button class="mcp-action-btn" id="loadPagesBtn">Tải tất cả trang</button>
+                    </div>
+                    <div class="mcp-search-box">
+                        <input type="text" id="pageSearchInput" class="mcp-search-input"
+                            placeholder="Tìm kiếm trang theo tên...">
+                    </div>
+                    <div class="mcp-loading" id="pagesLoading" style="display: none;">
+                        <span>Đang tải trang...</span>
+                    </div>
+                    <div class="mcp-pages-list" id="pagesList">
+                        <!-- Pages will be loaded here -->
+                    </div>
+                    <div class="mcp-pages-empty" id="pagesEmpty" style="display: none;">
+                        <div>Không tìm thấy trang nào</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Page Content Modal (for viewing page content) -->
+    <div class="mcp-page-modal" id="pageContentModal">
+        <div class="mcp-page-modal-content">
+            <div class="mcp-page-modal-header">
+                <h2 id="pageContentTitle">Nội dung trang</h2>
+                <div class="mcp-page-modal-actions">
+                    <button class="mcp-add-selected-btn" id="addSelectedBtn" style="display: none;">Thêm phần đã
+                        chọn</button>
+                    <button class="mcp-add-all-btn" id="addAllBtn">Thêm tất cả</button>
+                    <button class="mcp-modal-close" id="pageContentModalClose">&times;</button>
+                </div>
+            </div>
+            <div class="mcp-page-modal-body" id="pageContentBody">
+                <!-- Page content will be displayed here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- User Settings Menu -->
+    <div class="user-menu" id="userMenu">
+        <div class="user-menu-content">
+            <div class="user-menu-header">
+                <div class="user-menu-email">loulzasterr@gmail.com</div>
+            </div>
+            <div class="user-menu-items">
+                <a href="#" class="user-menu-item" id="upgradeItem">
+                    <span class="user-menu-icon">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor"
+                            stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9 2L11.5 6.5L16.5 7.5L13 11L13.5 16L9 13.5L4.5 16L5 11L1.5 7.5L6.5 6.5L9 2Z" />
+                        </svg>
+                    </span>
+                    <span>Nâng cấp gói</span>
+                </a>
+                <a href="#" class="user-menu-item" id="personalizeItem">
+                    <span class="user-menu-icon">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor"
+                            stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="9" cy="9" r="7" />
+                            <path d="M9 5V9L12 11" />
+                        </svg>
+                    </span>
+                    <span>Cá nhân hóa</span>
+                </a>
+                <a href="#" class="user-menu-item active" id="settingsItem">
+                    <span class="user-menu-icon">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor"
+                            stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="9" cy="9" r="2" />
+                            <path
+                                d="M9 1V3M9 15V17M17 9H15M3 9H1M14.66 3.34L13.24 4.76M4.76 13.24L3.34 14.66M14.66 14.66L13.24 13.24M4.76 4.76L3.34 3.34" />
+                        </svg>
+                    </span>
+                    <span>Cài đặt</span>
+                </a>
+                <a href="#" class="user-menu-item" id="helpItem">
+                    <span class="user-menu-icon">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor"
+                            stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="9" cy="9" r="7" />
+                            <path d="M9 6V8M9 12V12.01" />
+                        </svg>
+                    </span>
+                    <span>Trợ giúp</span>
+                    <span class="user-menu-arrow">→</span>
+                </a>
+                <a href="#" class="user-menu-item" id="logoutItem">
+                    <span class="user-menu-icon">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor"
+                            stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M6 2H3C2.45 2 2 2.45 2 3V15C2 15.55 2.45 16 3 16H6M11 13L15 9L11 5M15 9H6" />
+                        </svg>
+                    </span>
+                    <span>Đăng xuất</span>
+                </a>
+            </div>
+            <div class="user-menu-footer">
+                <div class="user-menu-profile">
+                    <div class="user-menu-avatar">MC</div>
+                    <div class="user-menu-profile-info">
+                        <div class="user-menu-profile-name">Minh Cao</div>
+                        <div class="user-menu-profile-plan">Plus</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="settings-modal" id="settingsModal">
+        <div class="settings-modal-content">
+            <div class="settings-sidebar">
+                <button class="settings-close" id="settingsCloseBtn">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="15" y1="5" x2="5" y2="15" />
+                        <line x1="5" y1="5" x2="15" y2="15" />
+                    </svg>
+                </button>
+                <nav class="settings-nav">
+                    <a href="#" class="settings-nav-item active" data-section="general">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor"
+                            stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="9" cy="9" r="2" />
+                            <path
+                                d="M9 1V3M9 15V17M17 9H15M3 9H1M14.66 3.34L13.24 4.76M4.76 13.24L3.34 14.66M14.66 14.66L13.24 13.24M4.76 4.76L3.34 3.34" />
+                        </svg>
+                        <span>Chung</span>
+                    </a>
+                    <a href="#" class="settings-nav-item" data-section="notifications">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor"
+                            stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9 2C6.24 2 4 4.24 4 7V11L2 13H16L14 11V7C14 4.24 11.76 2 9 2Z" />
+                            <path d="M9 16C10.1 16 11 15.1 11 14H7C7 15.1 7.9 16 9 16Z" />
+                        </svg>
+                        <span>Thông báo</span>
+                    </a>
+                    <a href="#" class="settings-nav-item" data-section="personalization">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor"
+                            stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="9" cy="9" r="7" />
+                            <path d="M9 5V9L12 11" />
+                        </svg>
+                        <span>Cá nhân hóa</span>
+                    </a>
+                    <a href="#" class="settings-nav-item" data-section="integrations">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor"
+                            stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="9" cy="6" r="3" />
+                            <circle cx="6" cy="12" r="2" />
+                            <circle cx="12" cy="12" r="2" />
+                            <path d="M9 9V12M6 12L9 15M12 12L9 15" />
+                        </svg>
+                        <span>Ứng dụng & trình kết nối</span>
+                    </a>
+                    <a href="#" class="settings-nav-item" data-section="data">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor"
+                            stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="12" height="12" rx="1" />
+                            <path d="M6 9H12M9 6V12" />
+                        </svg>
+                        <span>Kiểm soát dữ liệu</span>
+                    </a>
+                </nav>
+            </div>
+            <div class="settings-content">
+                <!-- General Settings -->
+                <div class="settings-section active" id="section-general">
+                    <h2 class="settings-title">Chung</h2>
+                    <div class="settings-group">
+                        <div class="settings-item">
+                            <div class="settings-item-label">
+                                <label>Giao diện</label>
+                            </div>
+                            <div class="settings-item-control">
+                                <select class="settings-select" id="interfaceSelect">
+                                    <option value="system">Hệ thống</option>
+                                    <option value="dark">Tối</option>
+                                    <option value="light">Sáng</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="settings-item">
+                            <div class="settings-item-label">
+                                <label>Màu điểm nhấn</label>
+                            </div>
+                            <div class="settings-item-control">
+                                <div class="theme-selector">
+                                    <button class="theme-option active" data-theme="pink" id="themePink">
+                                        <span class="theme-color"
+                                            style="background: linear-gradient(135deg, #ff6b9d 0%, #ff91a4 100%);"></span>
+                                        <span>Hồng</span>
+                                    </button>
+                                    <button class="theme-option" data-theme="orange" id="themeOrange">
+                                        <span class="theme-color"
+                                            style="background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);"></span>
+                                        <span>Cam</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="settings-item">
+                            <div class="settings-item-label">
+                                <label>Ngôn ngữ</label>
+                            </div>
+                            <div class="settings-item-control">
+                                <select class="settings-select" id="languageSelect">
+                                    <option value="auto">Dò tìm tự động</option>
+                                    <option value="vi">Tiếng Việt</option>
+                                    <option value="en">English</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Integrations Settings -->
+                <div class="settings-section" id="section-integrations">
+                    <h2 class="settings-title">Trình kết nối</h2>
+                    <p class="settings-description">
+                        ChatGPT có thể truy cập thông tin từ các công cụ được kết nối của bạn để cung cấp cho bạn những
+                        câu trả lời hữu ích hơn. Quyền của bạn luôn được tôn trọng.
+                        <a href="https://www.notion.so/my-integrations" target="_blank" class="settings-link">Tìm hiểu
+                            thêm.</a>
+                    </p>
+
+                    <div class="integrations-list">
+                        <div class="integration-card" id="notionIntegrationCard">
+                            <div class="integration-header">
+                                <div class="integration-logo">
+                                    <div class="integration-logo-bg">
+                                        <span>N</span>
+                                    </div>
+                                </div>
+                                <div class="integration-info">
+                                    <h3 class="integration-name">Notion</h3>
+                                    <p class="integration-desc">Tìm kiếm và tham khảo các trang Notion của bạn</p>
+                                </div>
+                                <button class="integration-connect-btn" id="notionConnectBtn">
+                                    <span class="btn-text">Kết nối</span>
+                                </button>
+                            </div>
+
+                            <!-- API Key Input Section (shown when connecting) -->
+                            <div class="integration-api-section" id="notionApiSection" style="display: none;">
+                                <div class="settings-item">
+                                    <div class="settings-item-label">
+                                        <label>Notion API Key</label>
+                                        <span class="settings-item-desc">Cần thiết để sử dụng tính năng MCP và tích hợp
+                                            Notion. Lấy API key tại <a href="https://www.notion.so/my-integrations"
+                                                target="_blank"
+                                                class="settings-link">notion.so/my-integrations</a></span>
+                                    </div>
+                                    <div class="settings-item-control">
+                                        <div class="api-key-input-wrapper">
+                                            <input type="password" class="settings-input" id="notionApiKey"
+                                                placeholder="Nhập Notion API Key...">
+                                            <button class="api-key-toggle" type="button" data-target="notionApiKey">
+                                                <svg width="18" height="18" viewBox="0 0 18 18" fill="none"
+                                                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                                                    stroke-linejoin="round">
+                                                    <path
+                                                        d="M1 9C1 9 4 4 9 4C14 4 17 9 17 9C17 9 14 14 9 14C4 14 1 9 1 9Z" />
+                                                    <circle cx="9" cy="9" r="2.5" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        <button class="settings-save-btn" data-key="notion">Lưu</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="integration-details" id="notionIntegrationDetails" style="display: none;">
+                                <!-- Hướng dẫn sử dụng -->
+                                <div class="integration-section">
+                                    <h4 class="integration-section-title">Hướng dẫn sử dụng</h4>
+                                    <div class="notion-guide">
+                                        <div class="notion-guide-item">
+                                            <div class="notion-guide-icon">📖</div>
+                                            <div class="notion-guide-content">
+                                                <h5>Tải trang từ Notion</h5>
+                                                <p>Click vào nút <strong>MCP Tools</strong> ở thanh chat, chọn
+                                                    <strong>Notion</strong>, sau đó click <strong>Tải tất cả
+                                                        trang</strong> để xem danh sách các trang Notion của bạn.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div class="notion-guide-item">
+                                            <div class="notion-guide-icon">➕</div>
+                                            <div class="notion-guide-content">
+                                                <h5>Thêm nội dung vào chat</h5>
+                                                <p>Sau khi tải trang, click vào một trang để xem nội dung. Bạn có thể
+                                                    chọn phần muốn thêm hoặc click <strong>Thêm tất cả</strong> để thêm
+                                                    toàn bộ nội dung vào chat.</p>
+                                            </div>
+                                        </div>
+                                        <div class="notion-guide-item">
+                                            <div class="notion-guide-icon">💾</div>
+                                            <div class="notion-guide-content">
+                                                <h5>Lưu nội dung vào Notion</h5>
+                                                <p>Bôi đen bất kỳ nội dung nào trong chat (bao gồm cả công thức LaTeX),
+                                                    sau đó click nút <strong>Thêm vào Notion</strong> để lưu vào trang
+                                                    mới hoặc cập nhật trang có sẵn.</p>
+                                            </div>
+                                        </div>
+                                        <div class="notion-guide-item">
+                                            <div class="notion-guide-icon">📐</div>
+                                            <div class="notion-guide-content">
+                                                <h5>Công thức toán học</h5>
+                                                <p>Các công thức LaTeX sẽ được tự động chuyển đổi sang định dạng KaTeX
+                                                    trong Notion, giúp bạn dễ dàng lưu và xem lại các công thức toán
+                                                    học.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="integration-section">
+                                    <h4 class="integration-section-title">Thông tin</h4>
+                                    <div class="integration-info-list">
+                                        <div class="integration-info-item">
+                                            <span class="info-label">Danh mục</span>
+                                            <span class="info-value">Năng suất</span>
+                                        </div>
+                                        <div class="integration-info-item">
+                                            <span class="info-label">Nhà phát triển</span>
+                                            <span class="info-value">Notion</span>
+                                        </div>
+                                        <div class="integration-info-item">
+                                            <span class="info-label">Trang web</span>
+                                            <a href="https://www.notion.so" target="_blank" class="info-link">
+                                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
+                                                    stroke="currentColor" stroke-width="1.5">
+                                                    <path d="M8 2L14 8L8 14M14 8H2" />
+                                                </svg>
+                                            </a>
+                                        </div>
+                                        <div class="integration-info-item">
+                                            <span class="info-label">Chính sách quyền riêng tư</span>
+                                            <a href="https://www.notion.so/privacy" target="_blank" class="info-link">
+                                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
+                                                    stroke="currentColor" stroke-width="1.5">
+                                                    <path d="M8 2L14 8L8 14M14 8H2" />
+                                                </svg>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="integration-actions">
+                                    <button class="integration-disconnect-btn" id="notionDisconnectBtn">Ngắt kết
+                                        nối</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notifications Settings -->
+                <div class="settings-section" id="section-notifications">
+                    <h2 class="settings-title">Thông báo</h2>
+                    <div class="settings-group">
+                        <div class="settings-item">
+                            <div class="settings-item-label">
+                                <label>Thông báo phản hồi</label>
+                                <span class="settings-item-desc">Nhận thông báo khi bot trả lời</span>
+                            </div>
+                            <div class="settings-item-control">
+                                <label class="settings-toggle">
+                                    <input type="checkbox" id="notificationResponse" checked>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="settings-item">
+                            <div class="settings-item-label">
+                                <label>Thông báo lỗi</label>
+                                <span class="settings-item-desc">Nhận thông báo khi có lỗi xảy ra</span>
+                            </div>
+                            <div class="settings-item-control">
+                                <label class="settings-toggle">
+                                    <input type="checkbox" id="notificationError" checked>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Personalization Settings -->
+                <div class="settings-section" id="section-personalization">
+                    <h2 class="settings-title">Cá nhân hóa</h2>
+                    <div class="settings-group">
+                        <div class="settings-item">
+                            <div class="settings-item-label">
+                                <label>Hiển thị thinking process</label>
+                                <span class="settings-item-desc">Hiển thị quá trình suy nghĩ của hệ thống</span>
+                            </div>
+                            <div class="settings-item-control">
+                                <label class="settings-toggle">
+                                    <input type="checkbox" id="showThinking" checked>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="settings-item">
+                            <div class="settings-item-label">
+                                <label>Hiển thị thời gian phản hồi</label>
+                                <span class="settings-item-desc">Hiển thị thời gian xử lý mỗi câu trả lời</span>
+                            </div>
+                            <div class="settings-item-control">
+                                <label class="settings-toggle">
+                                    <input type="checkbox" id="showResponseTime" checked>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Data Control Settings -->
+                <div class="settings-section" id="section-data">
+                    <h2 class="settings-title">Kiểm soát dữ liệu</h2>
+                    <div class="settings-group">
+                        <div class="settings-item">
+                            <div class="settings-item-label">
+                                <label>Xóa lịch sử chat</label>
+                                <span class="settings-item-desc">Xóa tất cả lịch sử chat đã lưu</span>
+                            </div>
+                            <div class="settings-item-control">
+                                <button class="settings-danger-btn" id="clearHistoryBtn">Xóa tất cả</button>
+                            </div>
+                        </div>
+                        <div class="settings-item">
+                            <div class="settings-item-label">
+                                <label>Xuất dữ liệu</label>
+                                <span class="settings-item-desc">Tải xuống lịch sử chat dưới dạng JSON</span>
+                            </div>
+                            <div class="settings-item-control">
+                                <button class="settings-btn" id="exportDataBtn">Xuất dữ liệu</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add to Notion Modal -->
+    <div class="notion-add-modal" id="notionAddModal">
+        <div class="notion-add-modal-content">
+            <div class="notion-add-modal-header">
+                <h2>Thêm vào Notion</h2>
+                <button class="mcp-modal-close" id="notionAddModalClose">&times;</button>
+            </div>
+            <div class="notion-add-modal-body">
+                <div class="notion-add-option-group">
+                    <label class="notion-add-option">
+                        <input type="radio" name="notionAction" value="create" checked>
+                        <span>Trang mới</span>
+                    </label>
+                    <label class="notion-add-option">
+                        <input type="radio" name="notionAction" value="update">
+                        <span>Cập nhật trang có sẵn</span>
+                    </label>
+                </div>
+
+                <!-- Create New Page Section -->
+                <div class="notion-add-section" id="createSection">
+                    <div class="notion-add-field">
+                        <label>Tiêu đề trang</label>
+                        <input type="text" id="notionPageTitle" class="notion-input" placeholder="Nhập tiêu đề...">
+                    </div>
+                    <div class="notion-add-field">
+                        <label>Trang cha (Parent)</label>
+                        <div class="notion-select-wrapper">
+                            <select id="notionParentSelect" class="notion-select">
+                                <option value="">Đang tải...</option>
+                            </select>
+                            <button class="notion-refresh-btn" id="refreshParentsBtn">Làm mới</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Update Existing Page Section -->
+                <div class="notion-add-section" id="updateSection" style="display: none;">
+                    <div class="notion-add-field">
+                        <label>Chọn trang</label>
+                        <div class="notion-select-wrapper">
+                            <select id="notionPageSelect" class="notion-select">
+                                <option value="">Đang tải...</option>
+                            </select>
+                            <button class="notion-refresh-btn" id="refreshPagesBtn">Làm mới</button>
+                        </div>
+                    </div>
+                    <div class="notion-add-field">
+                        <label>Chế độ</label>
+                        <div class="notion-add-option-group">
+                            <label class="notion-add-option">
+                                <input type="radio" name="updateMode" value="add" checked>
+                                <span>Thêm vào cuối</span>
+                            </label>
+                            <label class="notion-add-option">
+                                <input type="radio" name="updateMode" value="edit">
+                                <span>Thay thế toàn bộ</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="notion-add-preview">
+                    <label>Nội dung sẽ thêm</label>
+                    <div class="notion-preview-content" id="notionPreviewContent">
+                        <!-- Selected content preview -->
+                    </div>
+                </div>
+            </div>
+            <div class="notion-add-modal-footer">
+                <button class="notion-cancel-btn" id="notionCancelBtn">Hủy</button>
+                <button class="notion-save-btn" id="notionSaveBtn">Lưu vào Notion</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Chat Confirmation Modal -->
+    <div class="delete-confirm-modal" id="deleteConfirmModal">
+        <div class="delete-confirm-modal-content">
+            <h3>Xóa đoạn chat này?</h3>
+            <p>Hành động này không thể hoàn tác.</p>
+            <div class="delete-confirm-actions">
+                <button class="delete-confirm-btn delete-confirm-yes" id="deleteConfirmYes">Xóa</button>
+                <button class="delete-confirm-btn delete-confirm-no" id="deleteConfirmNo">Hủy</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Clear All Data Confirmation Modal -->
+    <div class="delete-confirm-modal" id="clearAllDataModal">
+        <div class="delete-confirm-modal-content">
+            <h3>Xóa tất cả dữ liệu?</h3>
+            <p>Hành động này sẽ xóa:</p>
+            <ul class="clear-data-list">
+                <li>Tất cả lịch sử chat</li>
+                <li>Tất cả tin nhắn</li>
+                <li>Tất cả cài đặt</li>
+                <li>API keys đã lưu</li>
+            </ul>
+            <p style="margin-top: 1rem; color: #ef4444; font-weight: 600;">Hành động này không thể hoàn tác!</p>
+            <div class="delete-confirm-actions">
+                <button class="delete-confirm-btn delete-confirm-yes" id="clearAllDataYes">Xóa tất cả</button>
+                <button class="delete-confirm-btn delete-confirm-no" id="clearAllDataNo">Hủy</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="settings-modal" id="settingsModal">
+        <div class="settings-modal-content">
+            <div class="settings-sidebar">
+                <div class="settings-sidebar-header">
+                    <h2>Cài đặt</h2>
+                    <button class="settings-close-btn" id="settingsCloseBtn">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round">
+                            <line x1="5" y1="5" x2="15" y2="15" />
+                            <line x1="15" y1="5" x2="5" y2="15" />
+                        </svg>
+                    </button>
+                </div>
+                <nav class="settings-nav">
+                    <button class="settings-nav-item active" data-section="general">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor"
+                            stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="9" cy="9" r="2.5" />
+                            <path
+                                d="M9 1v4M9 13v4M17 9h-4M5 9H1M14.66 3.34l-2.83 2.83M6.17 11.83l-2.83 2.83M14.66 14.66l-2.83-2.83M6.17 6.17L3.34 3.34" />
+                        </svg>
+                        <span>Chung</span>
+                    </button>
+                    <button class="settings-nav-item" data-section="api-keys">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor"
+                            stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="8" width="12" height="6" rx="1" />
+                            <path d="M9 8V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v3M6 8h6" />
+                            <circle cx="9" cy="11" r="1" />
+                        </svg>
+                        <span>API Keys</span>
+                    </button>
+                    <button class="settings-nav-item" data-section="appearance">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor"
+                            stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="9" cy="9" r="4" />
+                            <path
+                                d="M9 1v2M9 15v2M17 9h-2M3 9H1M14.66 3.34l-1.41 1.41M4.75 13.25l-1.41 1.41M14.66 14.66l-1.41-1.41M4.75 4.75L3.34 3.34" />
+                        </svg>
+                        <span>Giao diện</span>
+                    </button>
+                    <button class="settings-nav-item" data-section="notifications">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor"
+                            stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path
+                                d="M9 2a5 5 0 0 1 5 5v3.5a3 3 0 0 0 3 3h.5a1 1 0 0 1 0 2H3.5a1 1 0 0 1 0-2H4a3 3 0 0 0 3-3V7a5 5 0 0 1 5-5z" />
+                            <path d="M7 16a2 2 0 0 0 4 0" />
+                        </svg>
+                        <span>Thông báo</span>
+                    </button>
+                    <button class="settings-nav-item" data-section="data">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor"
+                            stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="12" height="12" rx="1" />
+                            <path d="M9 3v12M3 9h12" />
+                        </svg>
+                        <span>Dữ liệu</span>
+                    </button>
+                </nav>
+            </div>
+
+            <div class="settings-content">
+                <!-- General Section -->
+                <div class="settings-section active" id="section-general">
+                    <h2>Chung</h2>
+                    <div class="settings-group">
+                        <div class="settings-item">
+                            <div class="settings-item-label">
+                                <label>Ngôn ngữ</label>
+                                <span class="settings-item-desc">Chọn ngôn ngữ hiển thị</span>
+                            </div>
+                            <select class="settings-select" id="languageSelect">
+                                <option value="vi">Tiếng Việt</option>
+                                <option value="en">English</option>
+                            </select>
+                        </div>
+
+                        <div class="settings-item">
+                            <div class="settings-item-label">
+                                <label>Hiển thị thời gian phản hồi</label>
+                                <span class="settings-item-desc">Hiển thị thời gian xử lý của mỗi tin nhắn</span>
+                            </div>
+                            <label class="settings-toggle">
+                                <input type="checkbox" id="showResponseTime">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="settings-item">
+                            <div class="settings-item-label">
+                                <label>Tự động cuộn xuống</label>
+                                <span class="settings-item-desc">Tự động cuộn đến tin nhắn mới nhất</span>
+                            </div>
+                            <label class="settings-toggle">
+                                <input type="checkbox" id="autoScroll" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- API Keys Section -->
+                <div class="settings-section" id="section-api-keys">
+                    <h2>API Keys</h2>
+                    <div class="settings-group">
+                        <div class="settings-item">
+                            <div class="settings-item-label">
+                                <label>Google API Key</label>
+                                <span class="settings-item-desc">API key cho Google services (nếu cần)</span>
+                            </div>
+                            <div class="settings-input-wrapper">
+                                <input type="password" class="settings-input" id="googleApiKey"
+                                    placeholder="Nhập Google API key...">
+                                <button class="settings-input-toggle" type="button" data-target="googleApiKey">
+                                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor"
+                                        stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M1 9s2-4 8-4 8 4 8 4-2 4-8 4-8-4-8-4z" />
+                                        <circle cx="9" cy="9" r="2.5" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="settings-item">
+                            <div class="settings-item-label">
+                                <label>Notion API Key</label>
+                                <span class="settings-item-desc">API key cho Notion integration (bắt buộc cho
+                                    MCP)</span>
+                            </div>
+                            <div class="settings-input-wrapper">
+                                <input type="password" class="settings-input" id="notionApiKey"
+                                    placeholder="Nhập Notion API key...">
+                                <button class="settings-input-toggle" type="button" data-target="notionApiKey">
+                                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor"
+                                        stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M1 9s2-4 8-4 8 4 8 4-2 4-8 4-8-4-8-4z" />
+                                        <circle cx="9" cy="9" r="2.5" />
+                                    </svg>
+                                </button>
+                            </div>
+                            <div class="settings-item-hint">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor"
+                                    stroke-width="1.5">
+                                    <circle cx="8" cy="8" r="6" />
+                                    <path d="M8 5v3M8 11h.01" />
+                                </svg>
+                                <span>Lấy API key tại: <a href="https://www.notion.so/my-integrations"
+                                        target="_blank">notion.so/my-integrations</a></span>
+                            </div>
+                        </div>
+
+                        <div class="settings-item">
+                            <div class="settings-item-label">
+                                <label>Groq API Key</label>
+                                <span class="settings-item-desc">API key cho Groq LLM (đã cấu hình trong .env)</span>
+                            </div>
+                            <div class="settings-input-wrapper">
+                                <input type="password" class="settings-input" id="groqApiKey"
+                                    placeholder="Đã cấu hình trong .env" disabled>
+                                <span class="settings-input-status">✓</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Appearance Section -->
+                <div class="settings-section" id="section-appearance">
+                    <h2>Giao diện</h2>
+                    <div class="settings-group">
+                        <div class="settings-item">
+                            <div class="settings-item-label">
+                                <label>Màu chủ đạo</label>
+                                <span class="settings-item-desc">Chọn theme màu cho giao diện</span>
+                            </div>
+                            <div class="theme-selector">
+                                <button class="theme-option active" data-theme="pink" id="themePink">
+                                    <div class="theme-preview theme-pink"></div>
+                                    <span style="color: var(--text-primary); font-weight: 500;">Hồng</span>
+                                </button>
+                                <button class="theme-option" data-theme="orange" id="themeOrange">
+                                    <div class="theme-preview theme-orange"></div>
+                                    <span style="color: var(--text-primary); font-weight: 500;">Cam</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="settings-item">
+                            <div class="settings-item-label">
+                                <label>Độ sáng</label>
+                                <span class="settings-item-desc">Điều chỉnh độ sáng của giao diện</span>
+                            </div>
+                            <div class="settings-range-wrapper">
+                                <input type="range" class="settings-range" id="brightnessRange" min="0" max="100"
+                                    value="100">
+                                <span class="settings-range-value" id="brightnessValue">100%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notifications Section -->
+                <div class="settings-section" id="section-notifications">
+                    <h2>Thông báo</h2>
+                    <div class="settings-group">
+                        <div class="settings-item">
+                            <div class="settings-item-label">
+                                <label>Thông báo khi có phản hồi</label>
+                                <span class="settings-item-desc">Hiển thị thông báo khi bot trả lời</span>
+                            </div>
+                            <label class="settings-toggle">
+                                <input type="checkbox" id="notifyOnResponse" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="settings-item">
+                            <div class="settings-item-label">
+                                <label>Âm thanh thông báo</label>
+                                <span class="settings-item-desc">Phát âm thanh khi có tin nhắn mới</span>
+                            </div>
+                            <label class="settings-toggle">
+                                <input type="checkbox" id="soundNotification">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Data Section -->
+                <div class="settings-section" id="section-data">
+                    <h2>Dữ liệu</h2>
+                    <div class="settings-group">
+                        <div class="settings-item">
+                            <div class="settings-item-label">
+                                <label>Xuất dữ liệu</label>
+                                <span class="settings-item-desc">Tải xuống tất cả chat history</span>
+                            </div>
+                            <div class="settings-item-control">
+                                <button class="settings-action-btn" id="exportDataBtn">
+                                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor"
+                                        stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M9 12V2M9 12l-4-4M9 12l4-4M3 16h12" />
+                                    </svg>
+                                    <span>Xuất dữ liệu</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="settings-item">
+                            <div class="settings-item-label">
+                                <label>Xóa dữ liệu</label>
+                                <span class="settings-item-desc">Xóa tất cả chat history và cài đặt</span>
+                            </div>
+                            <div class="settings-item-control">
+                                <button type="button" class="settings-action-btn settings-action-btn-danger"
+                                    id="clearDataBtn">
+                                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor"
+                                        stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <path
+                                            d="M3 5h12M5 5V3a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M7 9v6M11 9v6M5 5h8M5 5l-1 10a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l-1-10" />
+                                    </svg>
+                                    <span>Xóa tất cả</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+
+    <!-- OCR Sidebar (Right Panel) -->
+    <aside id="ocrSidebar" class="ocr-sidebar hidden">
+        <div class="ocr-sidebar-header">
+            <span id="ocrSidebarTitle">Kết quả OCR</span>
+            <button id="ocrSidebarCloseBtn" class="ocr-close-btn">&times;</button>
+        </div>
+        <div id="ocrTextContainer" class="ocr-text-container"></div>
+        <div class="ocr-toolbar">
+            <button id="copyAllBtn" class="ocr-toolbar-btn" title="Copy toàn bộ">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                Copy All
+            </button>
+            <button id="insertAllBtn" class="ocr-toolbar-btn" title="Chèn vào chat">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                Insert to Chat
+            </button>
+            <button id="saveNotionBtn" class="ocr-toolbar-btn" title="Lưu vào Notion">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                    <polyline points="7 3 7 8 15 8"></polyline>
+                </svg>
+                Save to Notion
+            </button>
+        </div>
+    </aside>
+
+    <!-- Context Menu for Text Selection -->
+    <div id="ocrContextMenu" class="ocr-context-menu hidden">
+        <button data-action="copy" class="context-menu-item">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            Copy
+        </button>
+        <button data-action="insert_chat" class="context-menu-item">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Insert to Chat
+        </button>
+        <button data-action="solve_exercise" class="context-menu-item">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+            Giải bài tập
+        </button>
+        <button data-action="save_notion" class="context-menu-item">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                <polyline points="7 3 7 8 15 8"></polyline>
+            </svg>
+            Save to Notion
+        </button>
+    </div>
+
+
+    <!-- OCR Progress Modal -->
+    <div id="ocrProgressModal" class="ocr-progress-modal hidden">
+        <div class="ocr-progress-overlay"></div>
+        <div class="ocr-progress-card">
+            <div class="progress-header">
+                <h3>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        style="vertical-align: middle; margin-right: 0.5rem;">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                    Processing OCR
+                </h3>
+                <p class="file-info" id="ocrFileInfo">filename.pdf • 0 MB</p>
+            </div>
+
+            <div class="progress-steps">
+                <div class="step" data-step="upload">
+                    <div class="step-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                    </div>
+                    <div class="step-label">Upload</div>
+                </div>
+                <div class="step-connector"></div>
+                <div class="step" data-step="processing">
+                    <div class="step-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path
+                                d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83">
+                            </path>
+                        </svg>
+                    </div>
+                    <div class="step-label">Processing</div>
+                </div>
+                <div class="step-connector"></div>
+                <div class="step" data-step="extracting">
+                    <div class="step-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                        </svg>
+                    </div>
+                    <div class="step-label">Extracting</div>
+                </div>
+                <div class="step-connector"></div>
+                <div class="step" data-step="complete">
+                    <div class="step-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                    </div>
+                    <div class="step-label">Complete</div>
+                </div>
+            </div>
+
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="ocrProgressBar"></div>
+            </div>
+            <span class="progress-percentage" id="ocrProgressPercentage">0%</span>
+
+            <div class="progress-info">
+                <span class="time-remaining" id="ocrTimeRemaining">Estimated: calculating...</span>
+                <span class="current-action" id="ocrCurrentAction">Preparing upload...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- OCR Notifications Panel -->
+    <div id="ocrNotificationsPanel" class="ocr-notifications-panel collapsed">
+        <!-- Compact Badge (shown when collapsed) -->
+        <div class="ocr-panel-badge" onclick="toggleOcrPanel()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+            </svg>
+            <span class="ocr-badge-count" id="ocrBadgeCount">0</span>
+            <span class="ocr-badge-text">OCR</span>
+        </div>
+
+        <!-- Expanded Panel (shown when not collapsed) -->
+        <div class="ocr-panel-expanded">
+            <div class="ocr-panel-header">
+                <h4>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                    </svg>
+                    OCR Documents
+                </h4>
+                <button id="toggleOcrPanel" class="panel-toggle-btn" onclick="toggleOcrPanel()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div id="ocrNotificationsList" class="ocr-notifications-list">
+                <!-- OCR notifications will be added here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Paste Image Modal -->
+    <div id="pasteImageModal" class="modal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content paste-modal-content">
+            <div class="paste-modal-header">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+                <h3>Ảnh được phát hiện</h3>
+            </div>
+            <div class="paste-modal-body">
+                <div class="paste-image-preview">
+                    <img id="pasteImagePreview" src="" alt="Preview">
+                </div>
+                <p class="paste-filename" id="pasteFilename"></p>
+                <p class="paste-question">Bạn muốn làm gì với ảnh này?</p>
+            </div>
+            <div class="paste-modal-actions">
+                <button id="pasteOcrBtn" class="paste-btn paste-btn-primary">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                    </svg>
+                    <span>Trích xuất văn bản (OCR)</span>
+                </button>
+                <button id="pasteCancelBtn" class="paste-btn paste-btn-secondary">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                    <span>Hủy</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/ocr_progress.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+
+</html>

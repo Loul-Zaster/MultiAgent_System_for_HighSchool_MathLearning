@@ -50,16 +50,74 @@ class VinternClient:
         image_path: str,
         timeout: Optional[float] = None,
     ) -> Dict[str, Any]:
+        """Upload image to OCR service using /ocr/upload endpoint"""
         with open(image_path, "rb") as f:
             files = {"file": f}
             r = self._session.post(
-                self.api_url + "/upload_image",
+                self.api_url + "/ocr/upload",
                 files=files,
                 timeout=timeout or self.default_timeout,
             )
         if not r.ok:
-            raise RuntimeError(f"/upload_image error {r.status_code}: {r.text[:500]}")
-        return r.json()
+            raise RuntimeError(f"/ocr/upload error {r.status_code}: {r.text[:500]}")
+        
+        # The new API returns job-based response, so we need to handle it
+        data = r.json()
+        
+        # If it's a job-based response, we need to poll for results
+        if "job_id" in data:
+            job_id = data["job_id"]
+            # Poll for completion
+            return self._poll_job_result(job_id, timeout or self.default_timeout)
+        
+        # Otherwise return as-is (for backward compatibility)
+        return data
+    
+    def _poll_job_result(self, job_id: str, timeout: float) -> Dict[str, Any]:
+        """Poll job status until completion"""
+        import time
+        start_time = time.time()
+        
+        while time.time() - start_time < timeout:
+            # Check status
+            status_r = self._session.get(
+                self.api_url + f"/ocr/status/{job_id}",
+                timeout=10
+            )
+            
+            if not status_r.ok:
+                raise RuntimeError(f"Failed to check job status: {status_r.status_code}")
+            
+            status_data = status_r.json()
+            job_status = status_data.get("status")
+            
+            if job_status == "completed":
+                # Get result
+                result_r = self._session.get(
+                    self.api_url + f"/ocr/result/{job_id}",
+                    timeout=10
+                )
+                
+                if not result_r.ok:
+                    raise RuntimeError(f"Failed to get result: {result_r.status_code}")
+                
+                result_data = result_r.json()
+                
+                # Format to match expected response structure
+                return {
+                    "status": "ok",
+                    "merged_text": result_data.get("text", ""),
+                    "blocks": []  # OCR service doesn't return blocks
+                }
+            
+            elif job_status == "error":
+                error_msg = status_data.get("error", "Unknown error")
+                raise RuntimeError(f"OCR job failed: {error_msg}")
+            
+            # Still processing, wait and retry
+            time.sleep(2)
+        
+        raise RuntimeError(f"OCR job timeout after {timeout}s")
 
 
 def wait_until_ready(api_url: str, timeout: float = 30.0, interval: float = 0.5) -> Dict[str, Any]:

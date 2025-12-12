@@ -145,6 +145,18 @@ class MarkdownConverter:
         expr = re.sub(r"\\```math([\s\S]*?)\\```", r"\1", expr)
         expr = re.sub(r"\\begin\{eqnarray\*?\}", r"\\begin{aligned}", expr)
         expr = re.sub(r"\\end\{eqnarray\*?\}", r"\\end{aligned}", expr)
+        
+        # Fix \mid in \text{} - replace with | in text mode
+        # This handles cases like \text{mặt 6 \mid mặt chẵn}
+        # We need to replace \mid with | when inside \text{}
+        def fix_mid_in_text(match):
+            text_content = match.group(1)
+            # Replace \mid with | inside text
+            text_content = text_content.replace(r'\mid', '|')
+            return f'\\text{{{text_content}}}'
+        
+        expr = re.sub(r'\\text\{([^}]*)\}', fix_mid_in_text, expr)
+        
         converted = expr.strip()
 
         return converted
@@ -185,40 +197,58 @@ class MarkdownConverter:
             if not line:
                 continue
 
-            parts = []
-            last_idx = 0
-            for m in inline_pattern.finditer(line):
-                if m.start() > last_idx:
-                    parts.append({
-                        "type": "text",
-                        "text": {"content": line[last_idx:m.start()]}
+            # Check if line contains inline LaTeX ($...$)
+            if inline_pattern.search(line):
+                parts = []
+                last_idx = 0
+                for m in inline_pattern.finditer(line):
+                    if m.start() > last_idx:
+                        text_before = line[last_idx:m.start()].strip()
+                        if text_before:
+                            parts.append({
+                                "type": "text",
+                                "text": {"content": text_before}
+                            })
+                    expr = m.group(1).strip()
+                    # Clean up the expression - remove $ delimiters if present
+                    import re
+                    expr = re.sub(r'^\$|\$$', '', expr).strip()
+                    expr = self.latex_to_notion(expr) 
+                    if expr:  # Only add if expression is not empty
+                        parts.append({
+                            "type": "equation",
+                            "equation": {"expression": expr}
+                        })
+                    last_idx = m.end()
+
+                if last_idx < len(line):
+                    text_after = line[last_idx:].strip()
+                    if text_after:
+                        parts.append({
+                            "type": "text",
+                            "text": {"content": text_after}
+                        })
+
+                if len(parts) == 1 and "equation" in parts[0]:
+                    blocks.append({
+                        "object": "block",
+                        "type": "equation",
+                        "equation": {"expression": parts[0]["equation"]["expression"]}
                     })
-                expr = m.group(1).strip()
-                expr = self.latex_to_notion(expr) 
-                parts.append({
-                    "type": "equation",
-                    "equation": {"expression": expr}
-                })
-                last_idx = m.end()
-
-            if last_idx < len(line):
-                parts.append({
-                    "type": "text",
-                    "text": {"content": line[last_idx:]}
-                })
-
-            if len(parts) == 1 and "equation" in parts[0]:
-                blocks.append({
-                    "object": "block",
-                    "type": "equation",
-                    "equation": {"expression": parts[0]["equation"]["expression"]}
-                })
-            elif parts:
-                blocks.append({
-                    "object": "block",
-                    "type": "paragraph",
-                    "paragraph": {"rich_text": parts}
-                })
+                elif parts:
+                    blocks.append({
+                        "object": "block",
+                        "type": "paragraph",
+                        "paragraph": {"rich_text": parts}
+                    })
+            else:
+                # Plain text line - create paragraph block only if not empty
+                if line.strip():
+                    blocks.append({
+                        "object": "block",
+                        "type": "paragraph",
+                        "paragraph": {"rich_text": [{"type": "text", "text": {"content": line}}]}
+                    })
         return blocks
 
     def _extract_text_content(self, rich_text_list):

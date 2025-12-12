@@ -3,6 +3,7 @@ import sys
 import asyncio
 from typing import Dict, Any, List, Optional
 from enum import Enum
+from datetime import datetime
 
 from dotenv import load_dotenv
 from pydantic import BaseModel
@@ -24,17 +25,17 @@ load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "..", ".env"))
 
 # =================== Configuration ===================
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-print(f"🔍 GROQ_API_KEY found: {bool(GROQ_API_KEY)}")
+print(f"GROQ_API_KEY found: {bool(GROQ_API_KEY)}")
 groq_client: Optional[Groq] = None
 if GROQ_API_KEY:
     try:
         groq_client = Groq(api_key=GROQ_API_KEY)
-        print("✅ Groq client initialized successfully")
+        print("Groq client initialized successfully")
     except Exception as e:
-        print(f"⚠️ Failed to initialize Groq client: {e}")
+        print(f"Failed to initialize Groq client: {e}")
         groq_client = None
 else:
-    print("⚠️ GROQ_API_KEY not found in environment")
+    print("GROQ_API_KEY not found in environment")
     groq_client = None
 
 # =================== Agent Types ===================
@@ -57,6 +58,10 @@ class MasterAgentState(BaseModel):
     short_term_context: str = ""
     long_term_context: str = ""
     relevant_memories: List[Dict[str, Any]] = []
+    # Session ID for context isolation
+    session_id: str = ""
+    # Execution trace for UI
+    trace: List[Dict[str, Any]] = []
 
 # =================== Agent Registry ===================
 # Global memory instances (singleton pattern)
@@ -92,6 +97,13 @@ class AgentRegistry:
     async def _run_math_agent(self, state: MasterAgentState) -> str:
         """Run math agent for mathematical problems"""
         try:
+            # Log start
+            state.trace.append({
+                "step": "math_agent_start",
+                "message": "Math Agent đã nhận việc...",
+                "timestamp": datetime.now().isoformat()
+            })
+
             # Add to short-term memory
             self.short_term_memory.add_user_message(state.user_prompt, {"agent_type": "math"})
             
@@ -134,6 +146,12 @@ class AgentRegistry:
                 {"agent_type": "math", "memory_stored": True}
             )
             
+            state.trace.append({
+                "step": "math_done",
+                "message": "Đã tìm ra lời giải",
+                "timestamp": datetime.now().isoformat()
+            })
+
             return result_state.solution_text
         except Exception as e:
             return f"Lỗi khi chạy math agent: {e}"
@@ -174,11 +192,13 @@ class AgentRegistry:
                 sources = [line.strip() for line in sources_section.split('\n') if line.strip()]
             
             # Store research findings in long-term memory
-            self.long_term_memory.store_research_finding(
-                topic=state.user_prompt,
-                findings=result_state.answer,
-                sources=sources,
-                importance=0.7
+            await self.long_term_memory.store_memory(
+                content=f"Topic: {state.user_prompt}\nFindings: {result_state.answer}\nSources: {', '.join(sources)}",
+                memory_type="research",
+                importance=0.7,
+                tags=["research", "findings"],
+                context=f"Research on {state.user_prompt}",
+                source="research_agent"
             )
             
             # Add assistant response to short-term memory
@@ -218,7 +238,7 @@ class AgentRegistry:
         
         # Check if file exists
         if not os.path.exists(image_path):
-            return f"=== OCR AGENT ===\n❌ Không tìm thấy file ảnh: {image_path}\nVui lòng kiểm tra đường dẫn file."
+            return f"=== OCR AGENT ===\nKhông tìm thấy file ảnh: {image_path}\nVui lòng kiểm tra đường dẫn file."
         
         try:
             # Import OCR components
@@ -234,17 +254,17 @@ class AgentRegistry:
             client = VinternClient(api_url)
             
             # Wait for OCR API to be ready
-            print("🔎 Đợi OCR API sẵn sàng…")
+            print("Đợi OCR API sẵn sàng…")
             health = wait_until_ready(api_url)
             print("Health check:", health)
             
             # Upload image to OCR server
-            print("📤 Upload ảnh:", image_path)
+            print("Upload ảnh:", image_path)
             resp = client.upload_image(image_path)
             print("Raw resp:", resp)
             
             if resp.get("status") != "ok":
-                return f"=== OCR AGENT ===\n❌ Lỗi OCR: {resp.get('msg', resp)}"
+                return f"=== OCR AGENT ===\nLỗi OCR: {resp.get('msg', resp)}"
             
             # Format OCR result
             blocks = resp.get("blocks", [])
@@ -266,23 +286,23 @@ class AgentRegistry:
                 ocr_text = "\n\n".join(formatted)
             
             if not ocr_text.strip():
-                return "=== OCR AGENT ===\n⚠️ OCR server không trả về text có thể dùng!"
+                return "=== OCR AGENT ===\nOCR server không trả về text có thể dùng!"
             
             # Write to Notion if token is available
             if notion_token:
                 try:
                     notion_client = NotionMCPClient(os.path.join(os.path.dirname(__file__), "..", "MCP", "mcp_server.py"), notion_token)
                     async with notion_client.connect():
-                        text_block = f"📄 Kết quả OCR từ {image_path}:\n\n{ocr_text}"
+                        text_block = f"Kết quả OCR từ {image_path}:\n\n{ocr_text}"
                         await notion_client.update_page(page_id, content=text_block)
-                        print("✅ Đã ghi OCR vào Notion page:", page_id)
+                        print("Đã ghi OCR vào Notion page:", page_id)
                 except Exception as e:
-                    print(f"⚠️ Không thể ghi vào Notion: {e}")
+                    print(f"Không thể ghi vào Notion: {e}")
             
-            return f"=== OCR AGENT ===\n📖 Kết quả OCR từ {image_path}:\n\n{ocr_text}"
+            return f"=== OCR AGENT ===\nKết quả OCR từ {image_path}:\n\n{ocr_text}"
             
         except Exception as e:
-            return f"=== OCR AGENT ===\n❌ Lỗi khi xử lý OCR: {e}\n\nVui lòng kiểm tra:\n- Đường dẫn file ảnh\n- Kết nối OCR API\n- Cấu hình Notion token"
+            return f"=== OCR AGENT ===\nLỗi khi xử lý OCR: {e}\n\nVui lòng kiểm tra:\n- Đường dẫn file ảnh\n- Kết nối OCR API\n- Cấu hình Notion token"
     
     async def _run_general_agent(self, state: MasterAgentState) -> str:
         """Run general agent using Groq for other questions"""
@@ -359,17 +379,27 @@ class AgentRegistry:
             
             # Add assistant response to short-term memory
             self.short_term_memory.add_assistant_message(
-                f"=== TRỢ LÝ TỔNG QUÁT ===\n{result_text}",
+                f"{result_text}",
                 {"agent_type": "general", "memory_stored": True}
             )
             
-            return f"=== TRỢ LÝ TỔNG QUÁT ===\n{result_text}"
+            return f"{result_text}"
         except Exception as e:
             return f"Lỗi khi chạy general agent: {e}"
 
 # =================== Master Agent Nodes ===================
 async def analyze_prompt(state: MasterAgentState) -> MasterAgentState:
     """Analyze user prompt using semantic router for intelligent routing"""
+    print(f"--- Analyzing Prompt: {state.user_prompt} ---")
+    
+    # Initialize trace with copy
+    trace = list(state.trace)
+    trace.append({
+        "step": "start_analysis",
+        "message": "Đang suy nghĩ...",
+        "timestamp": datetime.now().isoformat()
+    })
+    
     try:
         # Use semantic router for advanced analysis
         routing_decision = await route_prompt(state.user_prompt)
@@ -383,12 +413,12 @@ async def analyze_prompt(state: MasterAgentState) -> MasterAgentState:
         else:
             state.context_analysis = {"reasoning": routing_decision.reasoning}
         
-        print(f"🤖 Chọn agent: {state.agent_type.value} (độ tin cậy: {state.confidence:.2f})")
-        print(f"💭 Lý do: {state.reasoning}")
+        print(f"Chọn agent: {state.agent_type.value} (độ tin cậy: {state.confidence:.2f})")
+        print(f"Lý do: {state.reasoning}")
         
         # Show detailed analysis if confidence is low
         if state.confidence < 0.6:
-            print("⚠️ Độ tin cậy thấp, có thể cần xem xét lại")
+            print("Độ tin cậy thấp, có thể cần xem xét lại")
             if hasattr(routing_decision, 'context_analysis') and isinstance(routing_decision.context_analysis, dict):
                 scores = routing_decision.context_analysis.get("scores", {})
                 for agent, score_info in scores.items():
@@ -396,7 +426,7 @@ async def analyze_prompt(state: MasterAgentState) -> MasterAgentState:
         
     except Exception as e:
         # Fallback to simple keyword matching
-        print(f"⚠️ Lỗi semantic router: {e}, chuyển sang phân tích đơn giản")
+        print(f"Lỗi semantic router: {e}, chuyển sang phân tích đơn giản")
         prompt_lower = state.user_prompt.lower()
         if any(word in prompt_lower for word in ["giải", "phương trình", "toán", "tính", "tính toán", "x^", "="]):
             state.agent_type = AgentType.MATH
@@ -413,13 +443,57 @@ async def analyze_prompt(state: MasterAgentState) -> MasterAgentState:
         
         state.confidence = 0.5
         state.context_analysis = {"fallback": True}
-        print(f"🤖 Chọn agent: {state.agent_type.value} - {state.reasoning}")
+        print(f"Chọn agent: {state.agent_type.value} - {state.reasoning}")
+    
+    # Log analysis completion
+    trace.append({
+        "step": "analysis_complete",
+        "message": f"Đã hiểu: {state.reasoning}",
+        "timestamp": datetime.now().isoformat()
+    })
+    state.trace = trace
     
     return state
 
+# Global registry cache per session
+_session_registries: Dict[str, AgentRegistry] = {}
+
+def get_registry_for_session(session_id: str) -> AgentRegistry:
+    """Get or create registry for a session with session-specific memory"""
+    if session_id not in _session_registries:
+        registry = AgentRegistry()
+        # Create session-specific short-term memory
+        from Memory.short_term import ShortTermMemory
+        registry.short_term_memory = ShortTermMemory()
+        _session_registries[session_id] = registry
+        print(f"Created new registry for session: {session_id}")
+    return _session_registries[session_id]
+
 async def route_to_agent(state: MasterAgentState) -> MasterAgentState:
     """Route to the selected specialized agent"""
-    registry = AgentRegistry()
+    # Log routing start
+    trace = list(state.trace)
+    agent_name_map = {
+        AgentType.MATH: "Math Agent",
+        AgentType.RESEARCH: "Research Agent",
+        AgentType.OCR: "OCR Agent",
+        AgentType.GENERAL: "General Agent"
+    }
+    agent_pretty_name = agent_name_map.get(state.agent_type, str(state.agent_type))
+    
+    trace.append({
+        "step": "routing",
+        "message": f"Đang chuyển đến {agent_pretty_name}...",
+        "timestamp": datetime.now().isoformat()
+    })
+    state.trace = trace
+
+    # Use session-specific registry if session_id is provided
+    if state.session_id:
+        registry = get_registry_for_session(state.session_id)
+    else:
+        # Fallback to default registry (for backward compatibility)
+        registry = AgentRegistry()
     
     if state.agent_type in registry.agents:
         try:
@@ -428,25 +502,34 @@ async def route_to_agent(state: MasterAgentState) -> MasterAgentState:
             state.result = await agent_method(state)
         except Exception as e:
             state.error = f"Lỗi khi chạy {state.agent_type.value} agent: {e}"
-            state.result = f"❌ {state.error}"
+            state.result = f"{state.error}"
     else:
         state.error = f"Agent {state.agent_type} không tồn tại"
-        state.result = f"❌ {state.error}"
+        state.result = f"{state.error}"
     
     return state
 
 async def format_output(state: MasterAgentState) -> MasterAgentState:
     """Format and display the final result"""
+    # Log trace completion
+    trace = list(state.trace)
+    trace.append({
+        "step": "formatting",
+        "message": "Đang tổng hợp kết quả...",
+        "timestamp": datetime.now().isoformat()
+    })
+    state.trace = trace
+
     print(f"\n{'='*60}")
-    print(f"🎯 Agent được chọn: {state.agent_type.value.upper()}")
-    print(f"💭 Lý do: {state.reasoning}")
-    print(f"📊 Độ tin cậy: {state.confidence:.2f}")
+    print(f"Agent được chọn: {state.agent_type.value.upper()}")
+    print(f"Lý do: {state.reasoning}")
+    print(f"Độ tin cậy: {state.confidence:.2f}")
     
     # Show context analysis if available
     if state.context_analysis and not state.context_analysis.get("fallback"):
         context = state.context_analysis.get("context", {})
         if context:
-            print(f"🔍 Phân tích ngữ cảnh:")
+            print(f"Phân tích ngữ cảnh:")
             print(f"   - Mục đích: {context.get('intent', 'unknown')}")
             print(f"   - Lĩnh vực: {context.get('domain', 'general')}")
             print(f"   - Độ phức tạp: {context.get('complexity', 'medium')}")
@@ -454,7 +537,7 @@ async def format_output(state: MasterAgentState) -> MasterAgentState:
     print(f"{'='*60}")
     print(state.result)
     if state.error:
-        print(f"\n⚠️ Lỗi: {state.error}")
+        print(f"\nLỗi: {state.error}")
     print(f"{'='*60}")
     return state
 
